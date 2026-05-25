@@ -5,7 +5,8 @@ interface ModalDetalhesProps {
   os: OrdemServicoAgro;
   onFechar: () => void;
   onTransferirSetor: (id: string, proximoSetor: OrdemServicoAgro['triagemSetor']) => void;
-  onAvancarStatus: (id: string, proximoStatus: OrdemServicoAgro['status'], solucaoParcial: string, novoSetor: OrdemServicoAgro['triagemSetor']) => void;
+  // Sincronizado para receber o 4º argumento estrutural (causaDefinida)
+  onAvancarStatus: (id: string, proximoStatus: OrdemServicoAgro['status'], solucaoParcial: string, causaDefinida: OrdemServicoAgro['tipoCausa']) => void;
   onDarBaixaFinal: (id: string, dadosLaudo: { causa: OrdemServicoAgro['tipoCausa']; setor: OrdemServicoAgro['triagemSetor']; solucao: string }) => void;
 }
 
@@ -20,7 +21,6 @@ export default function ModalDetalhes({ os, onFechar, onTransferirSetor, onAvanc
     if (os.tipoCausa) setCausa(os.tipoCausa);
   }, [os]);
 
-  // Verifica se o usuário alterou o select de setor para algo diferente do setor original da OS
   const setorFoiAlterado = setor !== os.triagemSetor;
 
   return (
@@ -56,39 +56,25 @@ export default function ModalDetalhes({ os, onFechar, onTransferirSetor, onAvanc
             </div>
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Relatório de Solução / Andamento</label>
-              <textarea 
-                value={solucao} 
-                onChange={e => setSolucao(e.target.value)} 
-                placeholder="Ex: Realizado a limpeza dos conectores..." 
-                rows={2} 
-                className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2 text-slate-200 outline-none resize-none" 
-              />
+              <textarea value={solucao} onChange={e => setSolucao(e.target.value)} placeholder="Ex: Realizado a limpeza dos conectores..." rows={2} className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2 text-slate-200 outline-none resize-none" />
             </div>
 
             <div className="pt-2 space-y-2">
-              {/* SE O SETOR FOR ALTERADO: Mostra botão para apenas transferir de fila sem mudar status */}
               {setorFoiAlterado && (
-                <button 
-                  onClick={() => onTransferirSetor(os.id, setor)} 
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white p-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1"
-                >
+                <button onClick={() => onTransferirSetor(os.id, setor)} className="w-full bg-amber-600 hover:bg-amber-700 text-white p-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1">
                   Transferir para Fila: {setor === 'Elétrica Automotiva' ? 'Elétrica ⚡' : setor === 'Mecânica/Hidráulica' ? 'Mecânica 🔧' : 'AP 📡'}
                 </button>
               )}
 
-              {/* Ações tradicionais de avançar o status das colunas */}
               {os.status === 'pendente' ? (
                 <button 
-                  onClick={() => onAvancarStatus(os.id, 'em_andamento', solucao, setor)} 
+                  onClick={() => onAvancarStatus(os.id, 'em_andamento', solucao, causa)} 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl font-bold transition"
                 >
                   Mover para Em Reparo 🛠️
                 </button>
               ) : (
-                <button 
-                  onClick={() => onDarBaixaFinal(os.id, { causa, setor, solucao })} 
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl font-bold transition"
-                >
+                <button onClick={() => onDarBaixaFinal(os.id, { causa, setor, solucao })} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl font-bold transition">
                   Dar Baixa Final (Concluir) 🏁
                 </button>
               )}

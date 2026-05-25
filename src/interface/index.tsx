@@ -15,20 +15,19 @@ export interface Equipamento {
 
 export interface OrdemServicoAgro {
   id: string;
-  prefixoTrator: string;       
-  idOperador: string;          
+  prefixoTrator: string;
+  idOperador: string;
+  criadoPor: string;
   atividade: string;
   modeloPiloto: string;
-  usina: string;
-  frente: string;
-  qruDescricao: string; 
-  criadoPor: string; 
+  qruDescricao: string;
   status: 'pendente' | 'em_andamento' | 'concluido';
   triagemSetor: 'Agricultura de Precisão' | 'Elétrica Automotiva' | 'Mecânica/Hidráulica';
-  dataCriacao: string;      
-  horaCriacao: string;      
   tipoCausa?: 'Hardware (Defeito Real)' | 'Erro Operacional (Falta de Treinamento)' | 'Infraestrutura/Sinal';
-  solucaoTecnico?: string; 
+  solucaoTecnico?: string;
   tecnicoResponsavel?: string;
-  tempoExecucaoMinutos?: number;
+  dataCriacao: string; 
+  horaCriacao: string;
+  usinaBase?: string;
+  frente?: string;
 }
