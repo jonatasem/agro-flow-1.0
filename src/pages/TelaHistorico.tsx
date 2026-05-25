@@ -207,7 +207,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
 
                 <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
                   <div>
-                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Usina / Frente</span>
+                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Usina</span>
                     <span className="text-slate-300 font-medium truncate block">{os.usinaBase || 'Geral'}</span>
                   </div>
                   <div>
@@ -244,7 +244,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               <tr className="bg-[#12141c] text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-[#2a3042]">
                 <th className="p-3 w-[15%]">Identificação</th>
                 <th className="p-3 w-[12%]">Equipamento</th>
-                <th className="p-3 w-[15%]">Usina / Frente</th>
+                <th className="p-3 w-[15%]">Usina</th>
                 <th className="p-3 w-[18%]">Setor Responsável</th>
                 <th className="p-3 w-[18%]">Causa Real</th>
                 <th className="p-3 w-[22%]">Histórico Técnico</th>

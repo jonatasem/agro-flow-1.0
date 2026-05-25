@@ -15,8 +15,6 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [criador, setCriador] = useState('');
   const [frente, setFrente] = useState('');
   const [atividade, setAtividade] = useState('');
-  const [piloto, setPiloto] = useState('');
-  const [usina, setUsina] = useState('');
   const [qru, setQru] = useState('');
 
   useEffect(() => {
@@ -28,8 +26,6 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         setCriador(os.criadoPor || '');
         setFrente(os.frente || '');
         setAtividade(os.atividade || '');
-        setPiloto(os.modeloPiloto || '');
-        setUsina(os.usinaBase || '');
         setQru(os.qruDescricao || '');
       }
     }
@@ -38,14 +34,20 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Busca os dados do equipamento cadastrado para injetar automaticamente piloto e usina
+    const equipamentoInfo = frotasCadastradas.find(
+      f => f.prefixo.toLowerCase() === prefixo.trim().toLowerCase()
+    );
+    
     onSalvar({
       prefixoTrator: prefixo,
       idOperador: operador,
       criadoPor: criador,
       frente: frente,
       atividade: atividade,
-      modeloPiloto: piloto,
-      usinaBase: usina,
+      // Se achar o equipamento, injeta os dados da API/Mock, senão deixa o que já existia na OS ou vazio
+      modeloPiloto: equipamentoInfo ? equipamentoInfo.modeloPilotoPadrao : '',
+      usinaBase: equipamentoInfo ? equipamentoInfo.usinaAlocada : '',
       qruDescricao: qru
     });
   };
@@ -72,11 +74,11 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" 
             />
             <datalist id="lista-frotas">
-            {frotasCadastradas.map(frota => (
+              {frotasCadastradas.map(frota => (
                 <option key={frota.prefixo} value={frota.prefixo}>
-                {frota.modeloEquipamento}
+                  {frota.modeloEquipamento}
                 </option>
-            ))}
+              ))}
             </datalist>
           </div>
 
@@ -102,42 +104,31 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
-            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none" />
+            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frente *</label>
-            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none" />
+            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Atividade</label>
-            <input type="text" value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Piloto Automático</label>
-            <input type="text" value={piloto} onChange={e => setPiloto(e.target.value)} placeholder="Ex: Trimble 1060" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none" />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Usina Base</label>
-            <input type="text" value={usina} onChange={e => setUsina(e.target.value)} placeholder="Ex: Usina São José" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none" />
+            <input type="text" value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
           </div>
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
-          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none resize-none" />
+          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-amber-500/50" />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancelar} className="bg-[#1e2230] hover:bg-[#2a3042] text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
+          <button type="button" onClick={onCancelar} className="bg-[#1e2230] hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
             Cancelar
           </button>
-          <button type="submit" className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1">
+          <button type="submit" className="bg-green-500 hover:bg-green-600 text-slate-950 font-black px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1">
             {idEmEdicao ? 'Atualizar O.S.' : 'Injetar O.S. no Painel 🚀'}
           </button>
         </div>
@@ -145,3 +136,4 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
     </section>
   );
 }
+
