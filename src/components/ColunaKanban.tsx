@@ -1,4 +1,3 @@
-import React from 'react';
 import type { OrdemServicoAgro } from '../interface/index';
 import { Edit3, Trash2, CheckCircle2, AlertTriangle } from 'lucide-react';
 
@@ -23,7 +22,6 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
 
       <div className="space-y-3">
         {ordensFiltradas.map(os => {
-          // Checa se já existe um laudo ou relatório técnico inserido
           const temSolucao = os.solucaoTecnico && os.solucaoTecnico.trim() !== '';
 
           return (
@@ -33,8 +31,7 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                 <span className="text-[9px] text-slate-500 font-bold">Por: {os.criadoPor}</span>
               </div>
               <h4 className="text-xs font-bold text-slate-300">{os.atividade} • {os.modeloPiloto}</h4>
-              
-              {/* O Bloco abaixo muda dinamicamente dependendo do estado do relatório */}
+
               <div className="mt-2 bg-[#12141c]/50 p-2 rounded border border-[#2a3042]/30">
                 {temSolucao ? (
                   <p className="text-[11px] text-emerald-400 font-medium flex items-start gap-1">

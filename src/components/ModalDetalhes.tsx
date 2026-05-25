@@ -4,21 +4,24 @@ import type { OrdemServicoAgro } from '../interface/index';
 interface ModalDetalhesProps {
   os: OrdemServicoAgro;
   onFechar: () => void;
-  onAvancarStatus: (id: string, proximoStatus: OrdemServicoAgro['status'], solucaoParcial: string) => void;
+  onTransferirSetor: (id: string, proximoSetor: OrdemServicoAgro['triagemSetor']) => void;
+  onAvancarStatus: (id: string, proximoStatus: OrdemServicoAgro['status'], solucaoParcial: string, novoSetor: OrdemServicoAgro['triagemSetor']) => void;
   onDarBaixaFinal: (id: string, dadosLaudo: { causa: OrdemServicoAgro['tipoCausa']; setor: OrdemServicoAgro['triagemSetor']; solucao: string }) => void;
 }
 
-export default function ModalDetalhes({ os, onFechar, onAvancarStatus, onDarBaixaFinal }: ModalDetalhesProps) {
+export default function ModalDetalhes({ os, onFechar, onTransferirSetor, onAvancarStatus, onDarBaixaFinal }: ModalDetalhesProps) {
   const [setor, setSetor] = useState<OrdemServicoAgro['triagemSetor']>(os.triagemSetor || 'Agricultura de Precisão');
-  const [causa, setCausa] = useState<OrdemServicoAgro['tipoCausa']>(os.tipoCausa || 'Hardware (Defeito Real)');
+  const [causa, setCausa] = useState<Required<OrdemServicoAgro>['tipoCausa']>(os.tipoCausa || 'Hardware (Defeito Real)');
   const [solucao, setSolucao] = useState(os.solucaoTecnico || '');
 
-  // Efeito reativo para sincronizar o modal se o card ativo mudar em background
   useEffect(() => {
     setSolucao(os.solucaoTecnico || '');
     if (os.triagemSetor) setSetor(os.triagemSetor);
     if (os.tipoCausa) setCausa(os.tipoCausa);
   }, [os]);
+
+  // Verifica se o usuário alterou o select de setor para algo diferente do setor original da OS
+  const setorFoiAlterado = setor !== os.triagemSetor;
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex justify-center items-center p-4 z-50 text-xs">
@@ -56,19 +59,30 @@ export default function ModalDetalhes({ os, onFechar, onAvancarStatus, onDarBaix
               <textarea 
                 value={solucao} 
                 onChange={e => setSolucao(e.target.value)} 
-                placeholder="Ex: Realizado a limpeza dos conectores ou troca de fusível..." 
+                placeholder="Ex: Realizado a limpeza dos conectores..." 
                 rows={2} 
-                className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2 text-slate-200 outline-none resize-none focus:border-blue-500" 
+                className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2 text-slate-200 outline-none resize-none" 
               />
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
+              {/* SE O SETOR FOR ALTERADO: Mostra botão para apenas transferir de fila sem mudar status */}
+              {setorFoiAlterado && (
+                <button 
+                  onClick={() => onTransferirSetor(os.id, setor)} 
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white p-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1"
+                >
+                  Transferir para Fila: {setor === 'Elétrica Automotiva' ? 'Elétrica ⚡' : setor === 'Mecânica/Hidráulica' ? 'Mecânica 🔧' : 'AP 📡'}
+                </button>
+              )}
+
+              {/* Ações tradicionais de avançar o status das colunas */}
               {os.status === 'pendente' ? (
                 <button 
-                  onClick={() => onAvancarStatus(os.id, 'em_andamento', solucao)} 
+                  onClick={() => onAvancarStatus(os.id, 'em_andamento', solucao, setor)} 
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-xl font-bold transition"
                 >
-                  Mover para Oficina/Campo 🚀
+                  Mover para Em Reparo 🛠️
                 </button>
               ) : (
                 <button 
