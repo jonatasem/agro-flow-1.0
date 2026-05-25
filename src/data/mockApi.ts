@@ -1,45 +1,35 @@
-export interface OrdemServico {
-  id: string;
-  frota: string;
-  tipoVeiculo: 'Caminhão' | 'Prancha' | 'Colhedora' | 'Trator BMD';
-  usina: 'Lençóis' | 'Quatá' | 'Salto Botelho' | 'Barra Grande';
-  frente: string;
-  equipamentoAfetado: 'Solinftec' | 'Trimble 1060' | 'Trimble 2050' | 'Topcon Value Line' | 'Rádio Mototrbo' | 'Sensores/Câmeras';
-  descricaoProblema: string;
-  tecnicoResponsavel: string;
-  horarioAbertura: string;     // Hora de criação do agendamento
-  horarioInicio?: string;       // Hora que mudou para 'em_andamento'
-  horarioConclusao?: string;    // Hora que mudou para 'concluido'
-  tempoExecucao?: string;       // Cálculo do tempo decorrido
-  status: 'pendente' | 'em_andamento' | 'concluido';
-}
+import type { Operador, Equipamento, OrdemServicoAgro } from "../interface";
 
-export const ordensServicoIniciais: OrdemServico[] = [
+
+export const listaOperadores: Operador[] = [
+  { codigo: '23805', nome: 'João da Silva (Alemão)', setor: 'CCT', turno: 'Turno C (Noturno)' },
+  { codigo: '14220', nome: 'Carlos Eduardo (Cadu)', setor: 'Plantio', turno: 'Turno A (Diurno)' },
+  { codigo: '33410', nome: 'Marcos Roberto', setor: 'Preparo de Solo', turno: 'Turno B (Vespertino)' },
+  { codigo: '45090', nome: 'Antônio Souza', setor: 'Tratos Culturais', turno: 'Turno A (Diurno)' }
+];
+
+export const listaEquipamentos: Equipamento[] = [
+  { prefixo: '850002', tipo: 'Trator', modeloEquipamento: 'John Deere 6100J', modeloPilotoPadrao: 'Trimble 1060', usinaAlocada: 'Lençóis' },
+  { prefixo: '850010', tipo: 'Trator', modeloEquipamento: 'Case IH Puma 230', modeloPilotoPadrao: 'Trimble 2050', usinaAlocada: 'Lençóis' },
+  { prefixo: '850045', tipo: 'Trator', modeloEquipamento: 'New Holland T8', modeloPilotoPadrao: 'Trimble 1060', usinaAlocada: 'Quatá' },
+  { prefixo: '850099', tipo: 'Trator', modeloEquipamento: 'John Deere 8R', modeloPilotoPadrao: 'Topcon Value Line', usinaAlocada: 'Barra Grande' }
+];
+
+export const ordensServicoIniciais: OrdemServicoAgro[] = [
   {
-    id: 'OS-001',
-    frota: '900159',
-    tipoVeiculo: 'Caminhão',
+    id: 'OS-850002-9912',
+    prefixoTrator: '850002',
+    idOperador: '23805',
+    atividade: 'Transbordo',
+    modeloPiloto: 'Trimble 1060',
     usina: 'Lençóis',
-    frente: 'Frente 04 (Balde 🪣)',
-    equipamentoAfetado: 'Rádio Mototrbo',
-    descricaoProblema: 'Realizado a inversão da antena do rádio, carro Líder frente 04.',
-    tecnicoResponsavel: '+55 18 99786-9714',
-    horarioAbertura: '23/05/2026 10:00',
-    horarioInicio: '23/05/2026 10:15',
-    horarioConclusao: '23/05/2026 10:42',
-    tempoExecucao: '27 minutos',
-    status: 'concluido'
-  },
-  {
-    id: 'OS-002',
-    frota: '800105',
-    tipoVeiculo: 'Prancha',
-    usina: 'Lençóis',
-    frente: 'Frente 03',
-    equipamentoAfetado: 'Rádio Mototrbo',
-    descricaoProblema: 'Aparelho inoperante. Necessário fazer a troca de fusível na cabine.',
-    tecnicoResponsavel: 'Jonatas Moreira',
-    horarioAbertura: '23/05/2026 12:57',
-    status: 'pendente'
+    frente: 'Frente 2',
+    qruDescricao: 'Piloto não habilita no monitor, trator não segue a linha do projeto.',
+    criadoPor: 'COA - Central',
+    triagemSetor: 'Agricultura de Precisão',
+    dataCriacao: '2026-05-20',
+    horaCriacao: '19:30',
+    status: 'pendente',
+    solucaoTecnico: '' // Alteração aqui: evita undefined ao ler o campo
   }
 ];
