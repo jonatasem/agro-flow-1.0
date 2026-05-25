@@ -1,122 +1,55 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+// Simulando os dados reais
+const maquinasMock = [
+  { id: '900159', nome: 'Caminhão 900159', status: 'liberado', detalhe: 'Ajuste de RPM concluído', frente: 'Frente 03' },
+  { id: '800105', nome: 'Prancha 800105', status: 'manutencao', detalhe: 'Aguardando troca de fusível do rádio', frente: 'Frente 03' },
+  { id: '702899', nome: 'Colhedora 702899', status: 'liberado', detalhe: 'Espaçamento de linha alterado', frente: 'Frente 01' },
+];
 
+export default function App() {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
+    <div className="min-h-screen bg-agro-dark text-slate-100 font-sans p-6">
+      {/* Header */}
+      <header className="mb-8 border-b border-agro-border pb-4 flex justify-between items-center">
         <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
+          <h1 className="text-2xl font-bold tracking-wide">ZILOR <span className="text-green-500">TECH</span></h1>
+          <p className="text-xs text-slate-400 mt-1">Unidade: Lençóis Paulista • Agricultura de Precisão</p>
         </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="bg-green-500/10 border border-green-500/30 text-green-400 px-3 py-1 rounded-full text-xs">
+          Painel Operacional Ativo
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {/* Grid Principal */}
+      <main>
+        <h2 className="text-lg font-semibold mb-4 text-slate-300">Monitoramento de Ativos por Frente</h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {maquinasMock.map((maquina) => (
+            <div key={maquina.id} className="bg-agro-card border border-agro-border rounded-xl p-5 shadow-lg hover:border-slate-500 transition-all duration-200">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">{maquina.frente}</span>
+                  <h3 className="text-lg font-bold text-slate-200 mt-0.5">{maquina.nome}</h3>
+                </div>
+                
+                {/* Badge Dinâmico de Status */}
+                <span className={`px-2.5 py-1 rounded-md text-xs font-semibold ${
+                  maquina.status === 'liberado' 
+                    ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                    : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                }`}>
+                  {maquina.status === 'liberado' ? '✅ Liberado' : '🛠️ Em Manutenção'}
+                </span>
+              </div>
+              
+              <p className="text-sm text-slate-400 bg-agro-dark p-3 rounded-lg border border-agro-border/50">
+                {maquina.detalhe}
+              </p>
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
 }
-
-export default App
