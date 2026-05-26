@@ -1,8 +1,6 @@
 export interface Operador {
   codigo: string;
   nome: string;
-  setor: string;
-  turno: string;
 }
 
 export interface Equipamento {
@@ -10,7 +8,8 @@ export interface Equipamento {
   tipo: string;
   modeloEquipamento: string;
   modeloPilotoPadrao: 'Trimble 1060' | 'Trimble 2050' | 'Topcon Value Line' | 'Nenhum';
-  usinaAlocada: 'Lençóis' | 'Quatá' | 'Barra Grande';
+  usinaAlocada: 'Lençóis' | 'Quatá' | 'Barra Grande' | 'Salto Botelho';
+  setor: string;
 }
 
 export interface OrdemServicoAgro {
@@ -30,4 +29,24 @@ export interface OrdemServicoAgro {
   horaCriacao: string;
   usinaBase?: string;
   frente?: string;
+}
+
+export interface TelaHistoricoProps {
+  ordens: OrdemServicoAgro[];
+}
+
+export interface FormularioOSProps {
+  idEmEdicao: string | null;
+  ordens: OrdemServicoAgro[];
+  onSalvar: (dadosForm: Partial<OrdemServicoAgro>) => void;
+  onCancelar: () => void;
+}
+
+export interface ColunaKanbanProps {
+  titulo: string;
+  status: OrdemServicoAgro['status'];
+  ordens: OrdemServicoAgro[];
+  onSelecionarCard: (os: OrdemServicoAgro) => void;
+  onEditar: (os: OrdemServicoAgro, e: React.MouseEvent) => void;
+  onExcluir: (id: string, e: React.MouseEvent) => void;
 }

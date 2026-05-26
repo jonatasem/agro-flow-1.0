@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { frotasCadastradas, operadoresCadastrados } from '../data/mockApi';
-import type { OrdemServicoAgro } from '../interface/index';
-
-interface FormularioOSProps {
-  idEmEdicao: string | null;
-  ordens: OrdemServicoAgro[];
-  onSalvar: (dadosForm: Partial<OrdemServicoAgro>) => void;
-  onCancelar: () => void;
-}
+import type { FormularioOSProps } from '../interface';
 
 export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar }: FormularioOSProps) {
   const [prefixo, setPrefixo] = useState('');
@@ -53,7 +46,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   };
 
   return (
-    <section className="max-w-2xl mx-auto bg-[#181b26] border border-[#2a3042] rounded-2xl p-6 shadow-xl text-xs">
+    <section className="max-w-2xl mx-auto bg-[#181b26] border border-agro-border rounded-2xl p-6 shadow-xl text-xs">
       <h2 className="text-lg font-black text-white mb-1">
         {idEmEdicao ? '📝 Editar Registro de Chamado' : '🚀 Registrar Nova O.S. Operacional'}
       </h2>
@@ -71,7 +64,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               value={prefixo} 
               onChange={e => setPrefixo(e.target.value)} 
               placeholder="Digite ou clique para buscar frota..." 
-              className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" 
             />
             <datalist id="lista-frotas">
               {frotasCadastradas.map(frota => (
@@ -92,7 +85,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               value={operador} 
               onChange={e => setOperador(e.target.value)} 
               placeholder="Digite ou clique para buscar operador..." 
-              className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" 
             />
             <datalist id="lista-operadores">
               {operadoresCadastrados.map(op => (
@@ -107,25 +100,25 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
-            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
+            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frente *</label>
-            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
+            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Atividade</label>
-            <input type="text" value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
+            <input type="text" value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
           </div>
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
-          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-[#12141c] border border-[#2a3042] rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-amber-500/50" />
+          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-amber-500/50" />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancelar} className="bg-[#1e2230] hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
+          <button type="button" onClick={onCancelar} className="bg-agro-card hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
             Cancelar
           </button>
           <button type="submit" className="bg-green-500 hover:bg-green-600 text-slate-950 font-black px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1">

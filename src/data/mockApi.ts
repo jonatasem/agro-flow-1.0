@@ -1,19 +1,47 @@
 import type { Operador, Equipamento, OrdemServicoAgro } from "../interface";
 
-
 export const operadoresCadastrados: Operador[] = [
-  { codigo: '23805', nome: 'João da Silva (Alemão)', setor: 'CCT', turno: 'Turno C (Noturno)' },
-  { codigo: '14220', nome: 'Carlos Eduardo (Cadu)', setor: 'Plantio', turno: 'Turno A (Diurno)' },
-  { codigo: '33410', nome: 'Marcos Roberto', setor: 'Preparo de Solo', turno: 'Turno B (Vespertino)' },
-  { codigo: '45090', nome: 'Antônio Souza', setor: 'Tratos Culturais', turno: 'Turno A (Diurno)' }
+  { codigo: '23805', nome: 'João da Silva (Alemão)'},
+  { codigo: '14220', nome: 'Carlos Eduardo (Cadu)'},
+  { codigo: '33410', nome: 'Marcos Roberto'},
+  { codigo: '45090', nome: 'Antônio Souza'}
 ];
 
 export const frotasCadastradas: Equipamento[] = [
-  { prefixo: '850002', tipo: 'Trator', modeloEquipamento: 'John Deere 6100J', modeloPilotoPadrao: 'Trimble 1060', usinaAlocada: 'Lençóis' },
-  { prefixo: '850010', tipo: 'Trator', modeloEquipamento: 'Case IH Puma 230', modeloPilotoPadrao: 'Trimble 2050', usinaAlocada: 'Lençóis' },
-  { prefixo: '850045', tipo: 'Trator', modeloEquipamento: 'New Holland T8', modeloPilotoPadrao: 'Trimble 1060', usinaAlocada: 'Quatá' },
-  { prefixo: '850099', tipo: 'Trator', modeloEquipamento: 'John Deere 8R', modeloPilotoPadrao: 'Topcon Value Line', usinaAlocada: 'Barra Grande' }
+  { 
+    prefixo: '850002', 
+    tipo: 'Trator', 
+    modeloEquipamento: 'John Deere 7M', 
+    modeloPilotoPadrao: 'Trimble 1060', 
+    usinaAlocada: 'Lençóis',
+    setor: 'Plantio'
+  },
+  { 
+    prefixo: '850010', 
+    tipo: 'Trator', 
+    modeloEquipamento: 'Case IH Puma 230', 
+    modeloPilotoPadrao: 'Trimble 2050', 
+    usinaAlocada: 'Lençóis',
+    setor: 'Plantio'
+  },
+  { 
+    prefixo: '850045', 
+    tipo: 'Trator', 
+    modeloEquipamento: 'New Holland T8', 
+    modeloPilotoPadrao: 'Trimble 1060', 
+    usinaAlocada: 'Quatá',
+    setor: 'Plantio'
+  },
+  { 
+    prefixo: '850099', 
+    tipo: 'Trator', 
+    modeloEquipamento: 'John Deere 8R', 
+    modeloPilotoPadrao: 'Topcon Value Line', 
+    usinaAlocada: 'Barra Grande',
+    setor: 'Plantio'
+   }
 ];
+
 export const ordensServicoIniciais: OrdemServicoAgro[] = [
   {
     id: "OS-850001-3491",
