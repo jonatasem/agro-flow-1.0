@@ -9,10 +9,15 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [frente, setFrente] = useState('');
   const [atividade, setAtividade] = useState('');
   const [qru, setQru] = useState('');
+  
+  // 🗺️ Novo Estado para capturar a cidade de abertura do chamado
+  const [usinaSelecionada, setUsinaSelecionada] = useState('');
 
   // Estados dinâmicos que alimentarão as tags <datalist> direto do Banco de Dados
   const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
   const [operadoresCadastrados, setOperadoresCadastrados] = useState<Operador[]>([]);
+
+  const cidadesZilor = ['Salto Botelho', 'Quatá', 'Barra Grande', 'Lençóis Paulista'];
 
   // Carrega os dados mestre do MongoDB para o Autocomplete do formulário
   useEffect(() => {
@@ -32,6 +37,18 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
     carregarDadosMestre();
   }, []);
 
+  // 🎯 Monitora a digitação da frota para pré-selecionar a Usina Alocada do Trator
+  useEffect(() => {
+    if (!idEmEdicao && prefixo.trim()) {
+      const tratorEncontrado = frotasCadastradas.find(
+        f => f.prefixo.trim().toLowerCase() === prefixo.trim().toLowerCase()
+      );
+      if (tratorEncontrado) {
+        setUsinaSelecionada(tratorEncontrado.usinaAlocada);
+      }
+    }
+  }, [prefixo, frotasCadastradas, idEmEdicao]);
+
   useEffect(() => {
     if (idEmEdicao) {
       const os = ordens.find(o => o.idCustomizado === idEmEdicao);
@@ -42,6 +59,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         setFrente(os.frente || '');
         setAtividade(os.atividade || '');
         setQru(os.qruDescricao || '');
+        setUsinaSelecionada(os.usinaBase || '');
       }
     }
   }, [idEmEdicao, ordens]);
@@ -51,17 +69,20 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
     
     // Procura o equipamento selecionado para auto-injetar os dados corretos no payload
     const equipamentoInfo = frotasCadastradas.find(
-      f => f.prefixo.toLowerCase() === prefixo.trim().toLowerCase()
+      f => f.prefixo.trim().toLowerCase() === prefixo.trim().toLowerCase()
     );
+
+    // Hierarquia: Escolha manual do select > Cadastro do trator > Fallback Geral
+    const cidadeFinal = usinaSelecionada || (equipamentoInfo ? equipamentoInfo.usinaAlocada : 'Geral Zilor');
     
     onSalvar({
-      prefixoTrator: prefixo,
-      idOperador: operador,
+      prefixoTrator: prefixo.trim(),
+      idOperador: operador.trim(),
       criadoPor: criador,
       frente: frente,
       atividade: atividade,
       modeloPiloto: equipamentoInfo ? equipamentoInfo.modeloPilotoPadrao : 'Não Identificado',
-      usinaBase: equipamentoInfo ? equipamentoInfo.usinaAlocada : 'Geral Zilor',
+      usinaBase: cidadeFinal, // 🚀 Envia a cidade vinculada ou modificada manualmente
       qruDescricao: qru
     });
   };
@@ -89,7 +110,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
             <datalist id="lista-frotas-db">
               {frotasCadastradas.map(frota => (
                 <option key={frota.prefixo} value={frota.prefixo}>
-                  {frota.modeloEquipamento} ({frota.setor})
+                  {frota.modeloEquipamento} ({frota.usinaAlocada})
                 </option>
               ))}
             </datalist>
@@ -126,9 +147,25 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
             <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Atividade</label>
-            <input type="text" value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Atividade *</label>
+            <input type="text" required value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
+        </div>
+
+        {/* 🗺️ Campo Seletor de Usina/Cidade */}
+        <div>
+          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Cidade / Usina Base *</label>
+          <select 
+            required
+            value={usinaSelecionada}
+            onChange={e => setUsinaSelecionada(e.target.value)}
+            className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold"
+          >
+            <option value="" disabled>Selecione a usina para este chamado...</option>
+            {cidadesZilor.map(c => (
+              <option key={c} value={c}>🏢 {c}</option>
+            ))}
+          </select>
         </div>
 
         <div>

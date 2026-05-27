@@ -92,7 +92,7 @@ export default function App() {
     inicializarPainel();
   }, []);
 
-  // 🎯 CORREÇÃO AQUI: Adicionado o filtro de cidadeAtiva e sua dependência no useMemo
+  // 🎯 Filtro estrutural do monitor Kanbam
   const ordensFiltradasKanban = useMemo(() => {
     return ordens.filter(os => (
       (filtroFrota === '' || os.prefixoTrator.includes(filtroFrota)) &&
@@ -110,10 +110,11 @@ export default function App() {
         setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
         setIdEmEdicao(null);
       } else {
+        // 🎯 CORREÇÃO DEFINITIVA: Removido 'usinaBase: cidadeAtiva'.
+        // Agora aceitamos os dados exatos de usinaBase criados de forma inteligente no FormularioOS.
         const payloadZilorAtlas = {
           ...dadosForm,
-          triagemSetor: setorAtivo,
-          usinaBase: cidadeAtiva // Garante que herda a cidade selecionada ao criar
+          triagemSetor: setorAtivo
         };
 
         const resposta = await api.post('/ordens', payloadZilorAtlas);
@@ -237,9 +238,9 @@ export default function App() {
                   {setoresDisponiveis.map(setor => {
                     const qtdPendentes = ordens.filter(os => os.triagemSetor === setor && os.status === 'pendente' && os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim()).length;
                     return (
-                      <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
+                      <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
                         <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica Automotiva' ? '⚡ Elétrica' : '🔧 Mecânica'}</span>
-                        {qtdPendentes > 0 && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdPendentes}</span>}
+                        {qtdPendentes > 0 && <span className="text-[10px] bg-green-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdPendentes}</span>}
                       </button>
                     );
                   })}

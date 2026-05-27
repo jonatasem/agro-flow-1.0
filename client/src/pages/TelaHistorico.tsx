@@ -1,9 +1,19 @@
 import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
-import type { TelaHistoricoProps } from '../interface/index.js';
 
-export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
+// 🎯 CORREÇÃO: Nova interface estendida com suporte às listas mestre do Atlas
+interface TelaHistoricoProps {
+  ordens: any[];
+  frotasMestre?: any[];      
+  operadoresMestre?: any[];  
+}
+
+export default function TelaHistorico({ 
+  ordens, 
+  frotasMestre = [], 
+  operadoresMestre = [] 
+}: TelaHistoricoProps) {
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [setor, setSetor] = useState<string>('TODOS');
@@ -89,8 +99,9 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             <select value={setor} onChange={e => setSetor(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition">
               <option value="TODOS">⚡ TODOS OS SETORES</option>
               <option value="Agricultura de Precisão">📡 Agricultura de Precisão</option>
-              <option value="Elétrica Automotiva">⚡ Elétrica Automotiva</option>
-              <option value="Mecânica/Hidráulica">🔧 Mecânica/Hidráulica</option>
+              {/* 🎯 CORREÇÃO: Nomes dos setores simplificados para sincronizar com as O.S. */}
+              <option value="Elétrica">⚡ Elétrica</option>
+              <option value="Mecânica">🔧 Mecânica</option>
             </select>
           </div>
 
@@ -103,14 +114,44 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             </select>
           </div>
 
+          {/* 🎯 CORREÇÃO: Vinculado ao datalist de frotas para habilitar o autocomplete buscador */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Truck size={10}/> Equipamento</label>
-            <input type="text" placeholder="Ex: 8500" value={equipamento} onChange={e => setEquipamento(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" />
+            <input 
+              type="text" 
+              list="lista-equipamentos-db"
+              placeholder="Ex: 8500" 
+              value={equipamento} 
+              onChange={e => setEquipamento(e.target.value)} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
+            />
+            <datalist id="lista-equipamentos-db">
+              {frotasMestre.map(frota => (
+                <option key={frota.prefixo} value={frota.prefixo}>
+                  {frota.modeloEquipamento} ({frota.usinaAlocada})
+                </option>
+              ))}
+            </datalist>
           </div>
 
+          {/* 🎯 CORREÇÃO: Vinculado ao datalist de operadores para habilitar o autocomplete buscador */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><User size={10}/> Operador</label>
-            <input type="text" placeholder="Ex: 23805" value={operador} onChange={e => setOperador(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" />
+            <input 
+              type="text" 
+              list="lista-operadores-db"
+              placeholder="Ex: 23805" 
+              value={operador} 
+              onChange={e => setOperador(e.target.value)} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
+            />
+            <datalist id="lista-operadores-db">
+              {operadoresMestre.map(op => (
+                <option key={op.codigo} value={op.codigo}>
+                  {op.nome}
+                </option>
+              ))}
+            </datalist>
           </div>
         </div>
 
@@ -184,7 +225,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Registros Gerais do Histórico</h4>
         </div>
 
-        {/* 1. LAYOUT ADAPTADO PARA MOBILE (CARDS - ID CUSTOMIZADO ATIVADO) */}
+        {/* 1. LAYOUT ADAPTADO PARA MOBILE (CARDS) */}
         <div className="block md:hidden divide-y divide-agro-border/60 bg-[#151822]">
           {dadosFiltrados.length > 0 ? (
             dadosFiltrados.map(os => (
@@ -233,7 +274,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           )}
         </div>
 
-        {/* 2. LAYOUT ADAPTADO PARA DESKTOP (TABELA ROBUSTA - ID CUSTOMIZADO ATIVADO) */}
+        {/* 2. LAYOUT ADAPTADO PARA DESKTOP (TABELA ROBUSTA) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left table-fixed border-collapse">
             <thead>
