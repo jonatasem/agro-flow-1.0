@@ -1,44 +1,36 @@
 # 🚜 Zilor Tech — Painel de Controle e Monitoramento de Ativos (Agricultura de Precisão)
 
-O *Zilor Tech* é uma solução de engenharia de software desenvolvida sob medida para centralizar, monitorar e gerenciar ativos de tecnologia embarcada e automação agrícola nas unidades produtoras da *Zilor* (Salto Botelho, Quatá, Lençóis Paulista e Barra Grande).
+O **Zilor Tech** é uma plataforma de engenharia de software de alta performance desenvolvida sob medida para centralizar, monitorar e gerenciar ativos de tecnologia embarcada, telemetria e automação agrícola nas unidades produtoras da **Zilor** (*Salto Botelho*, *Quatá*, *Lençóis Paulista* e *Barra Grande*).
 
-O sistema resolve um problema crítico do ecossistema de campo: a descentralização das informações de manutenção, calibração e inventário de hardware, que historicamente dependem de fluxos manuais de mensagens e logs informais de comunicação. 
+O sistema mitiga um gargalo crítico do ecossistema de campo: a descentralização das informações de manutenção preventiva, calibração e inventário de hardware, substituindo fluxos de comunicação informais por uma arquitetura auditável e orientada a eventos.
 
 ---
-
-## 💡 A Dor do Negócio vs. A Solução Tecnológica
-
-Na dinâmica de uma usina sucroenergética, falhas em computadores de bordo, rádios amadores ou sensores de plantio geram paradas de máquinas caras no campo. O *Zilor Tech* atua como uma ponte inteligente entre a operação agrícola real e a tomada de decisão gerencial:
-
-* *Rastreabilidade Histórica:* Substitui os registros informais de liberação de máquinas por uma timeline auditável de ordens de serviço.
-* *Gestão de Ativos em Tempo Real:* Mapeia a alocação e o status de displays (Trimble 1060/2050, Topcon Value Line), computadores Solinftec e sensores de fluxo/muda por frentes de trabalho (ex: Bento de Abreu).
-* *Otimização de UI/UX para o Campo:* Interface limpa, intuitiva e em Dark Mode Industrial, inspirada em designs modernos, garantindo facilidade de uso tanto para líderes de equipe quanto para técnicos de campo.
-
+## 💡 Impacto de Negócio vs. Arquitetura Tecnológica
+Na dinâmica de uma usina sucroenergética de alta escala, falhas de hardware em computadores de bordo, rádios transceptores ou sensores de plantio geram paradas de máquinas com alto custo operacional por hora. O *Zilor Tech* atua como a camada de inteligência entre o ecossistema agrícola real e o gerenciamento operacional (COA):
+* **Maximização da Disponibilidade Física (DF):** Substitui planilhas e mensagens informais por um fluxo Kanban realtime de Ordens de Serviço, otimizando o MTTR (*Mean Time to Repair*).
+* **Rastreabilidade de Hardware Crítico:** Mapeia e gerencia o ciclo de vida de displays (*Trimble 1060/2050*, *Topcon Value Line*), computadores de bordo *Solinftec* e sensores de fluxo/muda segmentados por frentes de trabalho.
+* **UI/UX para Alta Produtividade:** Interface de baixa carga cognitiva desenvolvida em *Dark Mode Industrial*, projetada para uso ágil tanto no centro de controle operacional quanto em tablets/terminais de campo.
 ---
 
 ## 🛠️ Stack Tecnológico
-
-O projeto utiliza o que há de mais moderno e robusto no desenvolvimento Full-Stack para garantir performance máxima, tipagem estática segura e otimização automatizada de renderização:
-
-* *Frontend:* React (utilizando o revolucionário *React Compiler* para otimização nativa de performance de componentes sem necessidade de ganchos manuais de memorização).
-* *Estilização:* Tailwind CSS (Arquitetura v4 moderna baseada em variáveis nativas do ecossistema CSS).
-* *Linguagem Principal:* TypeScript (Garantindo contratos de dados rígidos para frotas, ativos, usinas e ordens de serviço).
-* *Backend & Persistência:* Node.js, Express e MongoDB (Arquitetura desenhada para escalabilidade de microsserviços e alta flexibilidade de dados).
-
+A arquitetura do projeto adota as especificações mais robustas do desenvolvimento Full-Stack moderno para garantir o tripé: performance de renderização, segurança de tipos e escalabilidade de dados.
+* **Frontend:** React (alimentado nativamente pelo **React Compiler** para otimização automatizada da árvore de componentes e eliminação de ganchos manuais como `useMemo`/`useCallback`).
+* **Estilização:** Tailwind CSS (Arquitetura moderna baseada nas novas diretivas de variáveis nativas do ecossistema CSS).
+* **Contratos de Dados:** TypeScript (Tipagem estática estrita cobrindo o ciclo de vida dos contratos de frotas, operadores e ordens de serviço).
+* **Backend:** Node.js & Express (API REST estruturada de forma modular e aderente ao padrão de *Clean Architecture*).
+* **Persistência de Dados:** MongoDB Atlas & Prisma ORM (Banco NoSQL distribuído integrado a um modelador de dados estritamente tipado).
 ---
 
-## 👨‍💻 Autor e Desenvolvedor
+## 📡 Endpoints Estruturais da API (:3333/api)
 
-Este ecossistema de inovação foi idealizado, projetado e desenvolvido inteiramente por:
-
-* *Jonatas Elieser Moreira*
-
-## ⚙️ Funcionalidades Implementadas
-
-1.  *Dashboard Operacional da Frota:* Visualização em grid dinâmica de status de tratores, colhedoras e pranchas de apoio.
-2.  *Badges Dinâmicos de Diagnóstico:* Identificação visual instantânea através de código de cores (Liberado / Em Manutenção / Falha de Sensor).
-3.  *Logs de Atividades Reais:* Componentes alimentados com históricos reais extraídos do fluxo operacional diário do setor (Ajustes de RPM, trocas de fusíveis de rádio Mototrbo, inversões de antenas e recalibrações de espaçamento).
-
----
-
-Zilor Tech — Tecnologia e Engenharia transformando o Chão de Fábrica do Agronegócio.
+| Método | Endpoint | Payload / Objetivo |
+| :--- | :--- | :--- |
+| **GET** | /api/ordens | Retorna o payload completo de O.S. ativas para o Kanban. |
+| **POST** | /api/ordens | Registra nova O.S. (Gera timestamps e hashes de ID autônomos). |
+| **PUT** | /api/ordens/:id | Transfere setores ou avança o status técnico do reparo. |
+| **DELETE** | /api/ordens/:id | Expurgamento permanente do registro no MongoDB Atlas. |
+| **GET** | /api/frotas-mestre | Consulta a tabela mestre de frotas para alimentação de autocompletes. |
+| **GET** | /api/operadores-mestre | Consulta a tabela mestre de registros ativos de operadores. |
+  
+ * **Jonatas Elieser Moreira**
+*Zilor Tech — Engenharia de Software impulsionando a eficiência operacional e transformando a tecnologia de campo do Agronegócio.* 🌾
