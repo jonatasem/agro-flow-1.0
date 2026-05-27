@@ -1,0 +1,53 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {                
+  provider = "prisma-client-js"
+}
+
+model Operador {
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  codigo        String         @unique // Ex: '23805'
+  nome          String
+  ordensServico OrdemServico[]
+  criadoEm      DateTime       @default(now())
+}
+
+model Equipamento {
+  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
+  prefixo            String         @unique // Ex: '850002'
+  tipo               String         // Trator, Colhedora, etc.
+  modeloEquipamento  String         // John Deere 7M, etc.
+  modeloPilotoPadrao String         // Trimble 1060, etc.
+  usinaAlocada       String         // Lençóis Paulista, Quatá, etc.
+  setor              String         // Plantio, Transbordo (CTT), etc.
+  ordensServico      OrdemServico[]
+  criadoEm           DateTime       @default(now())
+}
+
+model OrdemServico {
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  idCustomizado      String   @unique // Ex: 'OS-850002-9912'
+  prefixoTrator      String
+  idOperador         String
+  criadoPor          String   // COA - Central, etc.
+  atividade          String   // Herdado ou digitado
+  modeloPiloto       String   
+  usinaBase          String   
+  frente             String
+  qruDescricao       String   
+  status             String   @default("pendente") // pendente, em_andamento, concluido
+  triagemSetor       String   // Agricultura de Precisão, Elétrica, Mecânica
+  tipoCausa          String?  // Hardware, Erro Operacional, Sinal
+  solucaoTecnico     String?  
+  tecnicoResponsavel String?
+  dataCriacao        String   // YYYY-MM-DD
+  horaCriacao        String   // HH:MM
+  atualizadoEm       DateTime @updatedAt
+
+  // Relações no MongoDB usando as chaves declaradas acima
+  equipamento Equipamento @relation(fields: [prefixoTrator], references: [prefixo])
+  operador    Operador    @relation(fields: [idOperador], references: [codigo])
+}
