@@ -2,8 +2,8 @@
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    // "rootDir": "./src",
-    // "outDir": "./dist",
+    "rootDir": "./src",                        /* 🚀 Ativado: Define onde estão os arquivos TypeScript originais */
+    "outDir": "./dist",                        /* 🚀 Ativado: Define onde os arquivos JavaScript compilados serão salvos */
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
@@ -11,8 +11,8 @@
     "target": "esnext",
     "types": [],
     // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
+    "lib": ["esnext"],                         /* 🚀 Ativado: Adiciona as definições de tipos para recursos modernos do JS */
+    // "types": ["node"],                      /* Pode manter comentado se usar os tipos globais nativos */
     // and npm install -D @types/node
 
     // Other Outputs
@@ -40,5 +40,6 @@
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-  }
+  },
+  "include": ["src/**/*"]                      /* 🚀 Adicionado: Diz ao compilador para olhar estritamente para a pasta src */
 }

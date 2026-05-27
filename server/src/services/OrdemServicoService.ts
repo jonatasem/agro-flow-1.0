@@ -4,7 +4,7 @@ import type { CreateOrdemInput, UpdateOrdemInput } from '../interfaces/index.js'
 const prisma = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL
+      url: process.env.DATABASE_URL ?? ''
     }
   }
 });
