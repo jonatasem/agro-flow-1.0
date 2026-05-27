@@ -12,9 +12,9 @@ import { RefreshCw, PlusCircle, LayoutDashboard, SlidersHorizontal, History, Map
 // components
 import FormularioOS from './components/FormularioOS';
 import ColunaKanban from './components/ColunaKanban';
+import ModalDetalhes from './components/ModalDetalhes';
 import TelaHistorico from './pages/TelaHistorico';
 import LoadingStatus from './components/LoadingStatus'; 
-import ModalDetalhes from './components/ModalDetalhes';
 
 export default function App() {
   const [ordens, setOrdens] = useState<OrdemServicoAgro[]>([]);
@@ -25,14 +25,14 @@ export default function App() {
   const [filtroFrota, setFiltroFrota] = useState('');
   const [filtroOperador, setFiltroOperador] = useState('');
   const [setorAtivo, setSetorAtivo] = useState<OrdemServicoAgro['triagemSetor']>('Agricultura de Precisão');
-  
+
   // 🗺️ Filtro de Cidade/Usina com o padrão 'Salto Botelho'
   const [cidadeAtiva, setCidadeAtiva] = useState<string>('Salto Botelho');
 
   // 🔄 Estado de controle para o componente de Carregamento (Loading)
   const [carregando, setCarregando] = useState<boolean>(true);
 
-  // 🔄 Estados para armazenar os dados mestre de frotas e operadores para o filtro
+  // 🔄 Novos estados para armazenar os dados mestre de frotas e operadores para o filtro
   const [frotasFiltro, setFrotasFiltro] = useState<Equipamento[]>([]);
   const [operadoresFiltro, setOperadoresFiltro] = useState<Operador[]>([]);
 
@@ -45,7 +45,8 @@ export default function App() {
   const cidadesDisponiveis = [
     'Salto Botelho',
     'Quatá',
-    'Barra Grande'
+    'Barra Grande',
+    'Lençóis Paulista'
   ];
 
   // 🔄 Função para carregar as ordens reais do MongoDB Atlas via API
@@ -72,7 +73,7 @@ export default function App() {
     }
   };
 
-  // 🔄 Carrega tudo em paralelo ao montar o componente e gerencia o estado de Loading
+  // 🔄 Carrega tudo em paralelo ao montar o componente
   useEffect(() => {
     const inicializarPainel = async () => {
       setCarregando(true);
@@ -84,14 +85,14 @@ export default function App() {
       } catch (error) {
         console.error("Erro na carga inicial do ecossistema:", error);
       } finally {
-        setCarregando(false); // Desliga o loading independentemente de sucesso ou erro
+        setCarregando(false);
       }
     };
 
     inicializarPainel();
   }, []);
 
-  // 🔄 useMemo com o filtro estrito de Usina Base / Cidade Ativa
+  // 🎯 CORREÇÃO AQUI: Adicionado o filtro de cidadeAtiva e sua dependência no useMemo
   const ordensFiltradasKanban = useMemo(() => {
     return ordens.filter(os => (
       (filtroFrota === '' || os.prefixoTrator.includes(filtroFrota)) &&
@@ -111,7 +112,8 @@ export default function App() {
       } else {
         const payloadZilorAtlas = {
           ...dadosForm,
-          triagemSetor: setorAtivo
+          triagemSetor: setorAtivo,
+          usinaBase: cidadeAtiva // Garante que herda a cidade selecionada ao criar
         };
 
         const resposta = await api.post('/ordens', payloadZilorAtlas);
@@ -121,7 +123,7 @@ export default function App() {
     } catch (error: any) {
       console.error("Erro ao salvar ordem de serviço:", error);
       if (error.response && error.response.data) {
-        console.error("Resposta de prevenção do Express:", error.response.data);
+        console.error("Resposta de rejeição do Express:", error.response.data);
       }
       alert("Não foi possível salvar a O.S. no servidor.");
     }
@@ -163,7 +165,6 @@ export default function App() {
       <div className="p-4 md:p-6">
         {abaAtiva === 'dashboard' && (
           <>
-            {/* Seção de Filtros de Input */}
             <section className="bg-[#181b26] border border-agro-border/80 rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Frota</label>
@@ -206,12 +207,10 @@ export default function App() {
               <button onClick={() => { setFiltroFrota(''); setFiltroOperador(''); }} className="bg-agro-card hover:bg-agro-border text-slate-300 py-2 rounded-xl font-bold border border-agro-border flex items-center justify-center gap-1 cursor-pointer"><RefreshCw size={12}/> Limpar Busca</button>
             </section>
 
-            {/* 🚀 Renderização Condicional do Monitor (Loading vs Conteúdo do Kanban) */}
             {carregando ? (
               <LoadingStatus />
             ) : (
               <>
-                {/* 🗺️ Filtro de Unidade / Cidade Ativa */}
                 <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-3 flex flex-wrap gap-2 items-center">
                   <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
                     <MapPin size={12} /> Cidade / Usina Base:
@@ -231,18 +230,12 @@ export default function App() {
                   })}
                 </section>
 
-                {/* Seção de Filtro por Setor Ativo */}
                 <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-6 flex flex-wrap gap-2 items-center">
                   <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
                     <SlidersHorizontal size={12} /> Setor Ativo:
                   </span>
                   {setoresDisponiveis.map(setor => {
-                    const qtdPendentes = ordens.filter(os => 
-                      os.triagemSetor === setor && 
-                      os.status === 'pendente' && 
-                      os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim()
-                    ).length;
-                    
+                    const qtdPendentes = ordens.filter(os => os.triagemSetor === setor && os.status === 'pendente' && os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim()).length;
                     return (
                       <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
                         <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica Automotiva' ? '⚡ Elétrica' : '🔧 Mecânica'}</span>
@@ -252,7 +245,6 @@ export default function App() {
                   })}
                 </section>
 
-                {/* Painel Kanban principal */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <ColunaKanban 
                     titulo="⏳ Fila Setor" 
@@ -289,7 +281,6 @@ export default function App() {
         {abaAtiva === 'criar' && <FormularioOS idEmEdicao={idEmEdicao} ordens={ordens} onSalvar={salvarOS} onCancelar={() => setAbaAtiva('dashboard')} />}
       </div>
 
-      {/* 🧾 Modal de Visualização de Detalhes e Ações Rápidas */}
       {osSelecionada && (
         <ModalDetalhes 
           os={osSelecionada} 
