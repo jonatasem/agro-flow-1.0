@@ -12,7 +12,7 @@ export default function LoadingStatus({ mensagem = "Conectando ao ecossistema Zi
       </p>
       
       <span className="text-[10px] text-slate-500 uppercase mt-2 font-bold tracking-wider">
-        Aguardando resposta do servidor público
+        Aguardando resposta do servidor
       </span>
     </div>
   );
