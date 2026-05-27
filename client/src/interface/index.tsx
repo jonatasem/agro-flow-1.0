@@ -1,19 +1,24 @@
 export interface Operador {
+  id?: string;
   codigo: string;
   nome: string;
+  criadoEm?: string;
 }
 
 export interface Equipamento {
+  id?: string;
   prefixo: string;
   tipo: string;
   modeloEquipamento: string;
-  modeloPilotoPadrao: 'Trimble 1060' | 'Trimble 2050' | 'Topcon Value Line' | 'Nenhum';
-  usinaAlocada: 'Lençóis' | 'Quatá' | 'Barra Grande' | 'Salto Botelho';
+  modeloPilotoPadrao: string;
+  usinaAlocada: string;
   setor: string;
+  criadoEm?: string;
 }
 
 export interface OrdemServicoAgro {
-  id: string;
+  id: string;             // ID interno (_id) do MongoDB
+  idCustomizado: string;  // ID de negócio padrão Zilor (Ex: OS-850002-4321)
   prefixoTrator: string;
   idOperador: string;
   criadoPor: string;
@@ -36,9 +41,9 @@ export interface TelaHistoricoProps {
 }
 
 export interface FormularioOSProps {
-  idEmEdicao: string | null;
+  idEmEdicao: string | null; // Recebe o idCustomizado correspondente
   ordens: OrdemServicoAgro[];
-  onSalvar: (dadosForm: Partial<OrdemServicoAgro>) => void;
+  onSalvar: (dadosForm: Partial<OrdemServicoAgro>) => Promise<void>;
   onCancelar: () => void;
 }
 
@@ -48,5 +53,5 @@ export interface ColunaKanbanProps {
   ordens: OrdemServicoAgro[];
   onSelecionarCard: (os: OrdemServicoAgro) => void;
   onEditar: (os: OrdemServicoAgro, e: React.MouseEvent) => void;
-  onExcluir: (id: string, e: React.MouseEvent) => void;
+  onExcluir: (idCustomizado: string, e: React.MouseEvent) => void;
 }

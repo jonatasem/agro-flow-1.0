@@ -1,23 +1,22 @@
-//dependencies
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 
-//data
-import { ordensServicoIniciais } from './data/mockApi';
+// API Real com Axios
+import api from './services/api';
 
-//interface
-import type { OrdemServicoAgro } from './interface/index';
+// interface (Mantendo a extensão estrita exigida pelo tsconfig)
+import type { OrdemServicoAgro } from './interface/index.js';
 
-//icons
+// icons
 import { RefreshCw, PlusCircle, LayoutDashboard, SlidersHorizontal, History } from 'lucide-react';
 
-//components
+// components
 import FormularioOS from './components/FormularioOS';
 import ColunaKanban from './components/ColunaKanban';
 import ModalDetalhes from './components/ModalDetalhes';
 import TelaHistorico from './pages/TelaHistorico';
 
 export default function App() {
-  const [ordens, setOrdens] = useState<OrdemServicoAgro[]>(ordensServicoIniciais);
+  const [ordens, setOrdens] = useState<OrdemServicoAgro[]>([]);
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'criar' | 'historico'>('dashboard');
   const [osSelecionada, setOsSelecionada] = useState<OrdemServicoAgro | null>(null);
   const [idEmEdicao, setIdEmEdicao] = useState<string | null>(null);
@@ -32,6 +31,21 @@ export default function App() {
     'Mecânica/Hidráulica'
   ];
 
+  // 🔄 Função para carregar as ordens reais do MongoDB Atlas via API
+  const carregarOrdens = async () => {
+    try {
+      const resposta = await api.get('/ordens');
+      setOrdens(resposta.data);
+    } catch (error) {
+      console.error("Erro ao conectar ao banco Zilor Atlas:", error);
+    }
+  };
+
+  // Carrega os dados assim que o componente é montado
+  useEffect(() => {
+    carregarOrdens();
+  }, []);
+
   const ordensFiltradasKanban = useMemo(() => {
     return ordens.filter(os => (
       (filtroFrota === '' || os.prefixoTrator.includes(filtroFrota)) &&
@@ -40,27 +54,49 @@ export default function App() {
     ));
   }, [ordens, filtroFrota, filtroOperador, setorAtivo]);
 
-  const salvarOS = (dadosForm: Partial<OrdemServicoAgro>) => {
-    const agora = new Date();
-    const dataAtual = `${agora.getFullYear()}-${String(agora.getMonth()+1).padStart(2,'0')}-${String(agora.getDate()).padStart(2,'0')}`;
-    const horaAtual = `${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
+  // 💾 Criar ou Atualizar uma Ordem no Banco de Dados
+  const salvarOS = async (dadosForm: Partial<OrdemServicoAgro>) => {
+    try {
+      if (idEmEdicao) {
+        // Envia o pedido de atualização para o backend usando o idCustomizado
+        const resposta = await api.put(`/ordens/${idEmEdicao}`, dadosForm);
+        setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
+        setIdEmEdicao(null);
+      } else {
+        // Unifica os 6 campos do front com o Setor do Kanban atual
+        const payloadZilorAtlas = {
+          ...dadosForm,
+          triagemSetor: setorAtivo // Injeta 'Agricultura de Precisão', 'Elétrica Automotiva', etc.
+        };
 
-    if (idEmEdicao) {
-      setOrdens(prev => prev.map(o => o.id === idEmEdicao ? { ...o, ...dadosForm } as OrdemServicoAgro : o));
-      setIdEmEdicao(null);
-    } else {
-      const novaOS: OrdemServicoAgro = {
-        id: `OS-${dadosForm.prefixoTrator}-${Math.floor(1000 + Math.random() * 9000)}`,
-        status: 'pendente',
-        triagemSetor: setorAtivo,
-        dataCriacao: dataAtual,
-        horaCriacao: horaAtual,
-        solucaoTecnico: '',
-        ...dadosForm
-      } as OrdemServicoAgro;
-      setOrdens(prev => [novaOS, ...prev]);
+        // Criação de uma nova ordem de serviço agrícola
+        const resposta = await api.post('/ordens', payloadZilorAtlas);
+        setOrdens(prev => [resposta.data, ...prev]);
+      }
+      setAbaAtiva('dashboard');
+    } catch (error: any) {
+      console.error("Erro ao salvar ordem de serviço:", error);
+      
+      // Diagnóstico inteligente de Erro 400 no console
+      if (error.response && error.response.data) {
+        console.error("Resposta de rejeição do Express:", error.response.data);
+      }
+      
+      alert("Não foi possível salvar a O.S. no servidor.");
     }
-    setAbaAtiva('dashboard');
+  };
+
+  // Eliminar permanentemente do MongoDB Atlas
+  const deletarOS = async (idCustomizado: string) => {
+    if (confirm(`Deseja remover permanentemente do painel a ordem ${idCustomizado}?`)) {
+      try {
+        await api.delete(`/ordens/${idCustomizado}`);
+        setOrdens(prev => prev.filter(o => o.idCustomizado !== idCustomizado));
+      } catch (error) {
+        console.error("Erro ao remover ordem:", error);
+        alert("Erro ao eliminar a ordem de serviço do banco.");
+      }
+    }
   };
 
   return (
@@ -115,9 +151,30 @@ export default function App() {
             </section>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <ColunaKanban titulo="⏳ Fila Setor" status="pendente" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.id); setAbaAtiva('criar'); }} onExcluir={(id, e) => { e.stopPropagation(); if(confirm("Deletar OS?")) setOrdens(p => p.filter(o => o.id !== id)); }} />
-              <ColunaKanban titulo="🛠️ Em Reparo" status="em_andamento" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.id); setAbaAtiva('criar'); }} onExcluir={(id, e) => { e.stopPropagation(); if(confirm("Deletar OS?")) setOrdens(p => p.filter(o => o.id !== id)); }} />
-              <ColunaKanban titulo="✅ Resolvido" status="concluido" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.id); setAbaAtiva('criar'); }} onExcluir={(id, e) => { e.stopPropagation(); if(confirm("Deletar OS?")) setOrdens(p => p.filter(o => o.id !== id)); }} />
+              <ColunaKanban 
+                titulo="⏳ Fila Setor" 
+                status="pendente" 
+                ordens={ordensFiltradasKanban} 
+                onSelecionarCard={setOsSelecionada} 
+                onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+              />
+              <ColunaKanban 
+                titulo="🛠️ Em Reparo" 
+                status="em_andamento" 
+                ordens={ordensFiltradasKanban} 
+                onSelecionarCard={setOsSelecionada} 
+                onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+              />
+              <ColunaKanban 
+                titulo="✅ Resolvido" 
+                status="concluido" 
+                ordens={ordensFiltradasKanban} 
+                onSelecionarCard={setOsSelecionada} 
+                onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+              />
             </div>
           </>
         )}
@@ -131,18 +188,38 @@ export default function App() {
         <ModalDetalhes 
           os={osSelecionada} 
           onFechar={() => setOsSelecionada(null)} 
-          onTransferirSetor={(id, proximoSetor) => {
-            setOrdens(p => p.map(o => o.id === id ? { ...o, triagemSetor: proximoSetor } : o));
-            setOsSelecionada(null);
+          onTransferirSetor={async (idCustomizado, proximoSetor) => {
+            try {
+              await api.put(`/ordens/${idCustomizado}`, { triagemSetor: proximoSetor });
+              await carregarOrdens();
+              setOsSelecionada(null);
+            } catch (err) {
+              alert("Erro ao transferir setor.");
+            }
           }}
-          onAvancarStatus={(id, prox, solucaoParcial, causaDefinida) => { 
-            //Salva a causa que o usuário mudou no estado local do modal
-            setOrdens(p => p.map(o => o.id === id ? { ...o, status: prox, solucaoTecnico: solucaoParcial, tipoCausa: causaDefinida } : o)); 
-            setOsSelecionada(null); 
+          onAvancarStatus={async (idCustomizado, prox, solucaoParcial, causaDefinida) => { 
+            try {
+              await api.put(`/ordens/${idCustomizado}`, { status: prox, solucaoTecnico: solucaoParcial, tipoCausa: causaDefinida }); 
+              await carregarOrdens();
+              setOsSelecionada(null); 
+            } catch (err) {
+              alert("Erro ao atualizar status.");
+            }
           }}
-          onDarBaixaFinal={(id, laudo) => {
-            setOrdens(p => p.map(o => o.id === id ? { ...o, status: 'concluido', tipoCausa: laudo.causa, triagemSetor: laudo.setor, solucaoTecnico: laudo.solucao || 'Resolvido no campo.', tecnicoResponsavel: 'Jonatas Moreira' } : o));
-            setOsSelecionada(null);
+          onDarBaixaFinal={async (idCustomizado, laudo) => {
+            try {
+              await api.put(`/ordens/${idCustomizado}`, { 
+                status: 'concluido', 
+                tipoCausa: laudo.causa, 
+                triagemSetor: laudo.setor, 
+                solucaoTecnico: laudo.solucao || 'Resolvido no campo.', 
+                tecnicoResponsavel: 'Jonatas Moreira' 
+              });
+              await carregarOrdens();
+              setOsSelecionada(null);
+            } catch (err) {
+              alert("Erro ao dar baixa final na O.S.");
+            }
           }}
         />
       )}

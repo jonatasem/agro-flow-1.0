@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
-import type { TelaHistoricoProps } from '../interface';
+import type { TelaHistoricoProps } from '../interface/index.js';
 
 export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
   const [dataInicio, setDataInicio] = useState('');
@@ -11,7 +11,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
   const [equipamento, setEquipamento] = useState('');
   const [operador, setOperador] = useState('');
 
-  // Processamento do Multi-filtro Acumulativo
+  // Processamento do Multi-filtro Acumulativo Real
   const dadosFiltrados = useMemo(() => {
     return ordens.filter(os => {
       if (dataInicio && os.dataCriacao < dataInicio) return false;
@@ -24,7 +24,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
     });
   }, [ordens, dataInicio, dataFim, setor, usina, equipamento, operador]);
 
-  // Cálculos Estatísticos de Porcentagem
+  // Cálculos Estatísticos de Porcentagem baseados no Atlas
   const analiseMetricas = useMemo(() => {
     let hardware = 0;
     let operacional = 0;
@@ -76,12 +76,12 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Calendar size={10}/> Data Inicial</label>
-            <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" />
+            <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition shadow-inner" />
           </div>
 
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Calendar size={10}/> Data Final</label>
-            <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" />
+            <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition shadow-inner" />
           </div>
 
           <div>
@@ -184,15 +184,15 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Registros Gerais do Histórico</h4>
         </div>
 
-        {/* 1. LAYOUT ADAPTADO PARA MOBILE (CARDS) */}
+        {/* 1. LAYOUT ADAPTADO PARA MOBILE (CARDS - ID CUSTOMIZADO ATIVADO) */}
         <div className="block md:hidden divide-y divide-agro-border/60 bg-[#151822]">
           {dadosFiltrados.length > 0 ? (
             dadosFiltrados.map(os => (
-              <div key={os.id} className="p-4 space-y-3 hover:bg-agro-card/30 transition">
+              <div key={os.idCustomizado} className="p-4 space-y-3 hover:bg-agro-card/30 transition">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
-                    <span className="font-bold text-white text-xs">{os.id}</span>
+                    <span className="font-bold text-white text-xs">{os.idCustomizado}</span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">{os.dataCriacao} às {os.horaCriacao}</span>
                   </div>
                   <div className="text-right">
@@ -222,18 +222,18 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                   <div className="border-t border-agro-border/30 pt-1.5">
                     <span className="text-[9px] font-bold text-slate-500 block uppercase">Histórico Técnico</span>
                     <p className="text-slate-400 italic text-[11px] wrap-break-word line-clamp-3">
-                      {os.solucaoTecnico || os.qruDescricao || 'Sem descrição registada.'}
+                      {os.solucaoTecnico || os.qruDescricao || 'Sem descrição registrada.'}
                     </p>
                   </div>
                 </div>
               </div>
             ))
           ) : (
-            <div className="p-8 text-center text-slate-500 italic">Nenhum registo encontrado.</div>
+            <div className="p-8 text-center text-slate-500 italic">Nenhum registro encontrado.</div>
           )}
         </div>
 
-        {/* 2. LAYOUT ADAPTADO PARA DESKTOP (TABELA ROBUSTA) */}
+        {/* 2. LAYOUT ADAPTADO PARA DESKTOP (TABELA ROBUSTA - ID CUSTOMIZADO ATIVADO) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left table-fixed border-collapse">
             <thead>
@@ -249,9 +249,9 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             <tbody className="divide-y divide-agro-border/40 text-slate-300">
               {dadosFiltrados.length > 0 ? (
                 dadosFiltrados.map(os => (
-                  <tr key={os.id} className="hover:bg-agro-card/40 transition text-[11px]">
+                  <tr key={os.idCustomizado} className="hover:bg-agro-card/40 transition text-[11px]">
                     <td className="p-3 whitespace-nowrap">
-                      <div className="font-bold text-white text-[11px]">{os.id}</div>
+                      <div className="font-bold text-white text-[11px]">{os.idCustomizado}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">{os.dataCriacao} - {os.horaCriacao}</div>
                     </td>
                     <td className="p-3 font-bold text-amber-500 whitespace-nowrap">
@@ -278,7 +278,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-500 italic">
-                    Nenhum registo encontrado com os filtros aplicados.
+                    Nenhum registro encontrado com os filtros aplicados.
                   </td>
                 </tr>
               )}

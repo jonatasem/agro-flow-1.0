@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { frotasCadastradas, operadoresCadastrados } from '../data/mockApi';
-import type { FormularioOSProps } from '../interface';
+import api from '../services/api';
+import type { FormularioOSProps, Equipamento, Operador } from '../interface/index.js';
 
 export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar }: FormularioOSProps) {
   const [prefixo, setPrefixo] = useState('');
@@ -10,9 +10,31 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [atividade, setAtividade] = useState('');
   const [qru, setQru] = useState('');
 
+  // Estados dinâmicos que alimentarão as tags <datalist> direto do Banco de Dados
+  const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
+  const [operadoresCadastrados, setOperadoresCadastrados] = useState<Operador[]>([]);
+
+  // Carrega os dados mestre do MongoDB para o Autocomplete do formulário
+  useEffect(() => {
+    const carregarDadosMestre = async () => {
+      try {
+        const [resFrotas, resOperadores] = await Promise.all([
+          api.get('/frotas-mestre'),
+          api.get('/operadores-mestre')
+        ]);
+        setFrotasCadastradas(resFrotas.data);
+        setOperadoresCadastrados(resOperadores.data);
+      } catch (error) {
+        console.error("Erro ao alimentar campos do formulário:", error);
+      }
+    };
+
+    carregarDadosMestre();
+  }, []);
+
   useEffect(() => {
     if (idEmEdicao) {
-      const os = ordens.find(o => o.id === idEmEdicao);
+      const os = ordens.find(o => o.idCustomizado === idEmEdicao);
       if (os) {
         setPrefixo(os.prefixoTrator || '');
         setOperador(os.idOperador || '');
@@ -27,7 +49,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Busca os dados do equipamento cadastrado para injetar automaticamente piloto e usina
+    // Procura o equipamento selecionado para auto-injetar os dados corretos no payload
     const equipamentoInfo = frotasCadastradas.find(
       f => f.prefixo.toLowerCase() === prefixo.trim().toLowerCase()
     );
@@ -38,9 +60,8 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       criadoPor: criador,
       frente: frente,
       atividade: atividade,
-      // Se achar o equipamento, injeta os dados da API/Mock, senão deixa o que já existia na OS ou vazio
-      modeloPiloto: equipamentoInfo ? equipamentoInfo.modeloPilotoPadrao : '',
-      usinaBase: equipamentoInfo ? equipamentoInfo.usinaAlocada : '',
+      modeloPiloto: equipamentoInfo ? equipamentoInfo.modeloPilotoPadrao : 'Não Identificado',
+      usinaBase: equipamentoInfo ? equipamentoInfo.usinaAlocada : 'Geral Zilor',
       qruDescricao: qru
     });
   };
@@ -50,44 +71,42 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       <h2 className="text-lg font-black text-white mb-1">
         {idEmEdicao ? '📝 Editar Registro de Chamado' : '🚀 Registrar Nova O.S. Operacional'}
       </h2>
-      <p className="text-slate-400 mb-6">Insira ou procure os dados do equipamento e operador.</p>
+      <p className="text-slate-400 mb-6">Insira os dados do equipamento ativo para sincronia no MongoDB.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Input com Busca de Equipamento/Frota */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Prefixo do Trator / Equipamento *</label>
             <input 
               type="text" 
               required 
-              list="lista-frotas"
+              list="lista-frotas-db"
               value={prefixo} 
               onChange={e => setPrefixo(e.target.value)} 
-              placeholder="Digite ou clique para buscar frota..." 
-              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" 
+              placeholder="Digite ou selecione a frota..." 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
-            <datalist id="lista-frotas">
+            <datalist id="lista-frotas-db">
               {frotasCadastradas.map(frota => (
                 <option key={frota.prefixo} value={frota.prefixo}>
-                  {frota.modeloEquipamento}
+                  {frota.modeloEquipamento} ({frota.setor})
                 </option>
               ))}
             </datalist>
           </div>
 
-          {/* Input com Busca de Operador */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Código do Operador *</label>
             <input 
               type="text" 
               required 
-              list="lista-operadores"
+              list="lista-operadores-db"
               value={operador} 
               onChange={e => setOperador(e.target.value)} 
-              placeholder="Digite ou clique para buscar operador..." 
-              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" 
+              placeholder="Digite ou selecione o operador..." 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
-            <datalist id="lista-operadores">
+            <datalist id="lista-operadores-db">
               {operadoresCadastrados.map(op => (
                 <option key={op.codigo} value={op.codigo}>
                   {op.nome}
@@ -100,21 +119,21 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
-            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
+            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frente *</label>
-            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
+            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Atividade</label>
-            <input type="text" value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-amber-500/50" />
+            <input type="text" value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
         </div>
 
         <div>
           <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
-          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-amber-500/50" />
+          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50" />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
@@ -122,11 +141,10 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
             Cancelar
           </button>
           <button type="submit" className="bg-green-500 hover:bg-green-600 text-slate-950 font-black px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1">
-            {idEmEdicao ? 'Atualizar O.S.' : 'Injetar O.S. no Painel 🚀'}
+            {idEmEdicao ? 'Atualizar O.S.' : 'Salvar no MongoDB Atlas 🚀'}
           </button>
         </div>
       </form>
     </section>
   );
 }
-
