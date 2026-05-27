@@ -55,3 +55,7 @@ export interface ColunaKanbanProps {
   onEditar: (os: OrdemServicoAgro, e: React.MouseEvent) => void;
   onExcluir: (idCustomizado: string, e: React.MouseEvent) => void;
 }
+
+export interface LoadingStatusProps {
+  mensagem?: string;
+}

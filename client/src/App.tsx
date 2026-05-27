@@ -4,16 +4,17 @@ import { useState, useMemo, useEffect } from 'react';
 import api from './services/api';
 
 // interface (Mantendo a extensão estrita exigida pelo tsconfig)
-import type { OrdemServicoAgro } from './interface/index.js';
+import type { OrdemServicoAgro, Equipamento, Operador } from './interface/index.js';
 
 // icons
-import { RefreshCw, PlusCircle, LayoutDashboard, SlidersHorizontal, History } from 'lucide-react';
+import { RefreshCw, PlusCircle, LayoutDashboard, SlidersHorizontal, History, MapPin } from 'lucide-react';
 
 // components
 import FormularioOS from './components/FormularioOS';
 import ColunaKanban from './components/ColunaKanban';
-import ModalDetalhes from './components/ModalDetalhes';
 import TelaHistorico from './pages/TelaHistorico';
+import LoadingStatus from './components/LoadingStatus'; 
+import ModalDetalhes from './components/ModalDetalhes';
 
 export default function App() {
   const [ordens, setOrdens] = useState<OrdemServicoAgro[]>([]);
@@ -24,11 +25,27 @@ export default function App() {
   const [filtroFrota, setFiltroFrota] = useState('');
   const [filtroOperador, setFiltroOperador] = useState('');
   const [setorAtivo, setSetorAtivo] = useState<OrdemServicoAgro['triagemSetor']>('Agricultura de Precisão');
+  
+  // 🗺️ Filtro de Cidade/Usina com o padrão 'Salto Botelho'
+  const [cidadeAtiva, setCidadeAtiva] = useState<string>('Salto Botelho');
+
+  // 🔄 Estado de controle para o componente de Carregamento (Loading)
+  const [carregando, setCarregando] = useState<boolean>(true);
+
+  // 🔄 Estados para armazenar os dados mestre de frotas e operadores para o filtro
+  const [frotasFiltro, setFrotasFiltro] = useState<Equipamento[]>([]);
+  const [operadoresFiltro, setOperadoresFiltro] = useState<Operador[]>([]);
 
   const setoresDisponiveis: OrdemServicoAgro['triagemSetor'][] = [
     'Agricultura de Precisão',
     'Elétrica Automotiva',
     'Mecânica/Hidráulica'
+  ];
+
+  const cidadesDisponiveis = [
+    'Salto Botelho',
+    'Quatá',
+    'Barra Grande'
   ];
 
   // 🔄 Função para carregar as ordens reais do MongoDB Atlas via API
@@ -41,52 +58,75 @@ export default function App() {
     }
   };
 
-  // Carrega os dados assim que o componente é montado
+  // 🔄 Função para carregar dados do banco para alimentar o autocomplete dos filtros
+  const carregarDadosMestreFiltro = async () => {
+    try {
+      const [resFrotas, resOperadores] = await Promise.all([
+        api.get('/frotas-mestre'),
+        api.get('/operadores-mestre')
+      ]);
+      setFrotasFiltro(resFrotas.data);
+      setOperadoresFiltro(resOperadores.data);
+    } catch (error) {
+      console.error("Erro ao carregar dados mestre para o filtro:", error);
+    }
+  };
+
+  // 🔄 Carrega tudo em paralelo ao montar o componente e gerencia o estado de Loading
   useEffect(() => {
-    carregarOrdens();
+    const inicializarPainel = async () => {
+      setCarregando(true);
+      try {
+        await Promise.all([
+          carregarOrdens(),
+          carregarDadosMestreFiltro()
+        ]);
+      } catch (error) {
+        console.error("Erro na carga inicial do ecossistema:", error);
+      } finally {
+        setCarregando(false); // Desliga o loading independentemente de sucesso ou erro
+      }
+    };
+
+    inicializarPainel();
   }, []);
 
+  // 🔄 useMemo com o filtro estrito de Usina Base / Cidade Ativa
   const ordensFiltradasKanban = useMemo(() => {
     return ordens.filter(os => (
       (filtroFrota === '' || os.prefixoTrator.includes(filtroFrota)) &&
       (filtroOperador === '' || os.idOperador.includes(filtroOperador)) &&
-      (os.triagemSetor === setorAtivo)
+      (os.triagemSetor === setorAtivo) &&
+      (os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim())
     ));
-  }, [ordens, filtroFrota, filtroOperador, setorAtivo]);
+  }, [ordens, filtroFrota, filtroOperador, setorAtivo, cidadeAtiva]);
 
   // 💾 Criar ou Atualizar uma Ordem no Banco de Dados
   const salvarOS = async (dadosForm: Partial<OrdemServicoAgro>) => {
     try {
       if (idEmEdicao) {
-        // Envia o pedido de atualização para o backend usando o idCustomizado
         const resposta = await api.put(`/ordens/${idEmEdicao}`, dadosForm);
         setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
         setIdEmEdicao(null);
       } else {
-        // Unifica os 6 campos do front com o Setor do Kanban atual
         const payloadZilorAtlas = {
           ...dadosForm,
-          triagemSetor: setorAtivo // Injeta 'Agricultura de Precisão', 'Elétrica Automotiva', etc.
+          triagemSetor: setorAtivo
         };
 
-        // Criação de uma nova ordem de serviço agrícola
         const resposta = await api.post('/ordens', payloadZilorAtlas);
         setOrdens(prev => [resposta.data, ...prev]);
       }
       setAbaAtiva('dashboard');
     } catch (error: any) {
       console.error("Erro ao salvar ordem de serviço:", error);
-      
-      // Diagnóstico inteligente de Erro 400 no console
       if (error.response && error.response.data) {
-        console.error("Resposta de rejeição do Express:", error.response.data);
+        console.error("Resposta de prevenção do Express:", error.response.data);
       }
-      
       alert("Não foi possível salvar a O.S. no servidor.");
     }
   };
 
-  // Eliminar permanentemente do MongoDB Atlas
   const deletarOS = async (idCustomizado: string) => {
     if (confirm(`Deseja remover permanentemente do painel a ordem ${idCustomizado}?`)) {
       try {
@@ -123,59 +163,124 @@ export default function App() {
       <div className="p-4 md:p-6">
         {abaAtiva === 'dashboard' && (
           <>
+            {/* Seção de Filtros de Input */}
             <section className="bg-[#181b26] border border-agro-border/80 rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Frota</label>
-                <input type="text" placeholder="Ex: 850002" value={filtroFrota} onChange={e => setFiltroFrota(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none" />
+                <input 
+                  type="text" 
+                  list="filtro-frotas-db"
+                  placeholder="Ex: 850002" 
+                  value={filtroFrota} 
+                  onChange={e => setFiltroFrota(e.target.value)} 
+                  className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" 
+                />
+                <datalist id="filtro-frotas-db">
+                  {frotasFiltro.map(frota => (
+                    <option key={frota.prefixo} value={frota.prefixo}>
+                      {frota.modeloEquipamento} ({frota.usinaAlocada})
+                    </option>
+                  ))}
+                </datalist>
               </div>
+
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Operador</label>
-                <input type="text" placeholder="Ex: 23805" value={filtroOperador} onChange={e => setFiltroOperador(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none" />
+                <input 
+                  type="text" 
+                  list="filtro-operadores-db"
+                  placeholder="Ex: 23805" 
+                  value={filtroOperador} 
+                  onChange={e => setFiltroOperador(e.target.value)} 
+                  className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" 
+                />
+                <datalist id="filtro-operadores-db">
+                  {operadoresFiltro.map(op => (
+                    <option key={op.codigo} value={op.codigo}>
+                      {op.nome}
+                    </option>
+                  ))}
+                </datalist>
               </div>
+              
               <button onClick={() => { setFiltroFrota(''); setFiltroOperador(''); }} className="bg-agro-card hover:bg-agro-border text-slate-300 py-2 rounded-xl font-bold border border-agro-border flex items-center justify-center gap-1 cursor-pointer"><RefreshCw size={12}/> Limpar Busca</button>
             </section>
 
-            <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-6 flex flex-wrap gap-2 items-center">
-              <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
-                <SlidersHorizontal size={12} /> Setor Ativo:
-              </span>
-              {setoresDisponiveis.map(setor => {
-                const qtdPendentes = ordens.filter(os => os.triagemSetor === setor && os.status === 'pendente').length;
-                return (
-                  <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
-                    <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica Automotiva' ? '⚡ Elétrica' : '🔧 Mecânica'}</span>
-                    {qtdPendentes > 0 && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdPendentes}</span>}
-                  </button>
-                );
-              })}
-            </section>
+            {/* 🚀 Renderização Condicional do Monitor (Loading vs Conteúdo do Kanban) */}
+            {carregando ? (
+              <LoadingStatus />
+            ) : (
+              <>
+                {/* 🗺️ Filtro de Unidade / Cidade Ativa */}
+                <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-3 flex flex-wrap gap-2 items-center">
+                  <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
+                    <MapPin size={12} /> Cidade / Usina Base:
+                  </span>
+                  {cidadesDisponiveis.map(cidade => {
+                    const qtdCidade = ordens.filter(os => os.usinaBase?.toLowerCase().trim() === cidade.toLowerCase().trim() && os.status !== 'concluido').length;
+                    return (
+                      <button 
+                        key={cidade} 
+                        onClick={() => setCidadeAtiva(cidade)} 
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${cidadeAtiva === cidade ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}
+                      >
+                        <span>🏢 {cidade}</span>
+                        {qtdCidade > 0 && <span className="text-[10px] bg-green-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdCidade}</span>}
+                      </button>
+                    );
+                  })}
+                </section>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <ColunaKanban 
-                titulo="⏳ Fila Setor" 
-                status="pendente" 
-                ordens={ordensFiltradasKanban} 
-                onSelecionarCard={setOsSelecionada} 
-                onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
-                onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
-              />
-              <ColunaKanban 
-                titulo="🛠️ Em Reparo" 
-                status="em_andamento" 
-                ordens={ordensFiltradasKanban} 
-                onSelecionarCard={setOsSelecionada} 
-                onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
-                onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
-              />
-              <ColunaKanban 
-                titulo="✅ Resolvido" 
-                status="concluido" 
-                ordens={ordensFiltradasKanban} 
-                onSelecionarCard={setOsSelecionada} 
-                onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
-                onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
-              />
-            </div>
+                {/* Seção de Filtro por Setor Ativo */}
+                <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-6 flex flex-wrap gap-2 items-center">
+                  <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
+                    <SlidersHorizontal size={12} /> Setor Ativo:
+                  </span>
+                  {setoresDisponiveis.map(setor => {
+                    const qtdPendentes = ordens.filter(os => 
+                      os.triagemSetor === setor && 
+                      os.status === 'pendente' && 
+                      os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim()
+                    ).length;
+                    
+                    return (
+                      <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
+                        <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica Automotiva' ? '⚡ Elétrica' : '🔧 Mecânica'}</span>
+                        {qtdPendentes > 0 && <span className="text-[10px] bg-amber-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdPendentes}</span>}
+                      </button>
+                    );
+                  })}
+                </section>
+
+                {/* Painel Kanban principal */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <ColunaKanban 
+                    titulo="⏳ Fila Setor" 
+                    status="pendente" 
+                    ordens={ordensFiltradasKanban} 
+                    onSelecionarCard={setOsSelecionada} 
+                    onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                    onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+                  />
+                  <ColunaKanban 
+                    titulo="🛠️ Em Reparo" 
+                    status="em_andamento" 
+                    ordens={ordensFiltradasKanban} 
+                    onSelecionarCard={setOsSelecionada} 
+                    onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                    onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+                  />
+                  <ColunaKanban 
+                    titulo="✅ Resolvido" 
+                    status="concluido" 
+                    ordens={ordensFiltradasKanban} 
+                    onSelecionarCard={setOsSelecionada} 
+                    onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                    onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+                  />
+                </div>
+              </>
+            )}
           </>
         )}
 
@@ -184,6 +289,7 @@ export default function App() {
         {abaAtiva === 'criar' && <FormularioOS idEmEdicao={idEmEdicao} ordens={ordens} onSalvar={salvarOS} onCancelar={() => setAbaAtiva('dashboard')} />}
       </div>
 
+      {/* 🧾 Modal de Visualização de Detalhes e Ações Rápidas */}
       {osSelecionada && (
         <ModalDetalhes 
           os={osSelecionada} 

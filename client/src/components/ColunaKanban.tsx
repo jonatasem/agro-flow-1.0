@@ -22,7 +22,7 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
               className="bg-agro-card border border-agro-border p-4 rounded-xl cursor-pointer hover:border-amber-500/20 transition group relative"
             >
               <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                <span className="font-black text-slate-200">🚜 Trator {os.prefixoTrator}</span>
+                <span className="font-black text-slate-200">Frota: {os.prefixoTrator}</span>
                 <span className="text-[9px] text-slate-500 font-bold">{os.idCustomizado}</span>
               </div>
               <h4 className="text-xs font-bold text-slate-300">{os.atividade} • {os.modeloPiloto}</h4>
