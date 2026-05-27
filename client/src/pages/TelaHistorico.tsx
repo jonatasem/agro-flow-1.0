@@ -1,25 +1,45 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
 
-// 🎯 CORREÇÃO: Nova interface estendida com suporte às listas mestre do Atlas
+// 📡 Conexão com a API e tipos do banco de dados
+import api from '../services/api';
+import type { Equipamento, Operador } from '../interface/index.js';
+
 interface TelaHistoricoProps {
   ordens: any[];
-  frotasMestre?: any[];      
-  operadoresMestre?: any[];  
 }
 
-export default function TelaHistorico({ 
-  ordens, 
-  frotasMestre = [], 
-  operadoresMestre = [] 
-}: TelaHistoricoProps) {
+export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
+  // Estados dos Filtros Avançados
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [setor, setSetor] = useState<string>('TODOS');
   const [usina, setUsina] = useState<string>('TODOS');
   const [equipamento, setEquipamento] = useState('');
   const [operador, setOperador] = useState('');
+
+  // 📦 Estados dinâmicos alimentados via API do MongoDB Atlas
+  const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
+  const [operadoresCadastrados, setOperadoresCadastrados] = useState<Operador[]>([]);
+
+  // 🔄 Carrega os dados mestre do MongoDB para habilitar o autocomplete buscador
+  useEffect(() => {
+    const carregarDadosMestre = async () => {
+      try {
+        const [resFrotas, resOperadores] = await Promise.all([
+          api.get('/frotas-mestre'),
+          api.get('/operadores-mestre')
+        ]);
+        setFrotasCadastradas(resFrotas.data);
+        setOperadoresCadastrados(resOperadores.data);
+      } catch (error) {
+        console.error("Erro ao carregar dados mestre na Tela de Histórico:", error);
+      }
+    };
+
+    carregarDadosMestre();
+  }, []);
 
   // Processamento do Multi-filtro Acumulativo Real
   const dadosFiltrados = useMemo(() => {
@@ -99,7 +119,6 @@ export default function TelaHistorico({
             <select value={setor} onChange={e => setSetor(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition">
               <option value="TODOS">⚡ TODOS OS SETORES</option>
               <option value="Agricultura de Precisão">📡 Agricultura de Precisão</option>
-              {/* 🎯 CORREÇÃO: Nomes dos setores simplificados para sincronizar com as O.S. */}
               <option value="Elétrica">⚡ Elétrica</option>
               <option value="Mecânica">🔧 Mecânica</option>
             </select>
@@ -114,7 +133,7 @@ export default function TelaHistorico({
             </select>
           </div>
 
-          {/* 🎯 CORREÇÃO: Vinculado ao datalist de frotas para habilitar o autocomplete buscador */}
+          {/* Autocomplete Buscador de Frotas/Equipamentos */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Truck size={10}/> Equipamento</label>
             <input 
@@ -126,7 +145,7 @@ export default function TelaHistorico({
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-equipamentos-db">
-              {frotasMestre.map(frota => (
+              {frotasCadastradas.map(frota => (
                 <option key={frota.prefixo} value={frota.prefixo}>
                   {frota.modeloEquipamento} ({frota.usinaAlocada})
                 </option>
@@ -134,7 +153,7 @@ export default function TelaHistorico({
             </datalist>
           </div>
 
-          {/* 🎯 CORREÇÃO: Vinculado ao datalist de operadores para habilitar o autocomplete buscador */}
+          {/* Autocomplete Buscador de Operadores */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><User size={10}/> Operador</label>
             <input 
@@ -146,7 +165,7 @@ export default function TelaHistorico({
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-operadores-db">
-              {operadoresMestre.map(op => (
+              {operadoresCadastrados.map(op => (
                 <option key={op.codigo} value={op.codigo}>
                   {op.nome}
                 </option>
