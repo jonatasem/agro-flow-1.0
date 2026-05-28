@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
 
-// Conexão com a API e tipos do banco de dados
 import api from '../services/api';
 import type { Equipamento, OrdemServicoAgro } from '../interface/index.js';
 
