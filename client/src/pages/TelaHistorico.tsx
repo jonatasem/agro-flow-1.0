@@ -146,11 +146,15 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-equipamentos-db">
-              {frotasCadastradas.map(frota => (
-                <option key={frota.prefixo} value={frota.prefixo}>
-                  {frota.modeloEquipamento} ({frota.usinaAlocada})
-                </option>
-              ))}
+              {frotasCadastradas
+                // Limita para renderizar no máximo as 15 primeiras opções no HTML
+                .slice(0, 5) 
+                .map(frota => (
+                  <option key={frota.prefixo} value={frota.prefixo}>
+                    {frota.modeloEquipamento} ({frota.usinaAlocada})
+                  </option>
+                ))
+              }
             </datalist>
           </div>
 
@@ -165,9 +169,13 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-operadores-db">
-              {operadoresCadastrados.map(op => (
-                <option key={op.codigo} value={op.codigo}>{op.nome}</option>
-              ))}
+              {operadoresCadastrados
+                // Limita para renderizar no máximo as 15 primeiras opções no HTML
+                .slice(0, 5) 
+                .map(op => (
+                  <option key={op.codigo} value={op.codigo}>{op.nome}</option>
+                ))
+              }
             </datalist>
           </div>
         </div>
