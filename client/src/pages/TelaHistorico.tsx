@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
 
-// 📡 Conexão com a API e tipos do banco de dados
+// Conexão com a API e tipos do banco de dados
 import api from '../services/api';
 import type { Equipamento, Operador } from '../interface/index.js';
 
@@ -19,11 +19,11 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
   const [equipamento, setEquipamento] = useState('');
   const [operador, setOperador] = useState('');
 
-  // 📦 Estados dinâmicos alimentados via API do MongoDB Atlas
+  // Estados dinâmicos alimentados via API do MongoDB Atlas
   const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
   const [operadoresCadastrados, setOperadoresCadastrados] = useState<Operador[]>([]);
 
-  // 🔄 Carrega os dados mestre do MongoDB para habilitar o autocomplete buscador
+  // Carrega os dados mestre do MongoDB para habilitar o autocomplete buscador
   useEffect(() => {
     const carregarDadosMestre = async () => {
       try {
@@ -121,6 +121,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               <option value="Agricultura de Precisão">📡 Agricultura de Precisão</option>
               <option value="Elétrica">⚡ Elétrica</option>
               <option value="Mecânica">🔧 Mecânica</option>
+              <option value="Borracharia">🔧 Borracharia</option>
             </select>
           </div>
 

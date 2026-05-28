@@ -41,16 +41,17 @@ export default function ModalDetalhes({ os, onFechar, onTransferirSetor, onAvanc
               <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Setor Responsável</label>
               <select value={setor} onChange={e => setSetor(e.target.value as any)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none">
                 <option value="Agricultura de Precisão">Agricultura de Precisão</option>
-                <option value="Elétrica Automotiva">Elétrica Automotiva</option>
-                <option value="Mecânica/Hidráulica">Mecânica/Hidráulica</option>
+                <option value="Elétrica">Elétrica</option>
+                <option value="Mecânica">Mecânica</option>
+                <option value="Borracharia">Borracharia</option>
               </select>
             </div>
             <div>
               <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Causa Real Constatada</label>
               <select value={causa} onChange={e => setCausa(e.target.value as any)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none">
                 <option value="Hardware (Defeito Real)">🔧 Hardware (Defeito Real)</option>
-                <option value="Erro Operacional (Falta de Treinamento)">⚠️ Erro Operacional (Falta Treinamento)</option>
-                <option value="Infraestrutura/Sinal">📡 Falha de Sinal</option>
+                <option value="Erro Operacional">⚠️ Erro Operacional</option>
+                <option value="Infraestrutura (Sinal)">📡 Infraestrutura (Sinal)</option>
               </select>
             </div>
             <div>
@@ -61,7 +62,7 @@ export default function ModalDetalhes({ os, onFechar, onTransferirSetor, onAvanc
             <div className="pt-2 space-y-2">
               {setorFoiAlterado && (
                 <button onClick={() => onTransferirSetor(os.idCustomizado, setor)} className="w-full bg-amber-600 hover:bg-amber-700 text-white p-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1 cursor-pointer">
-                  Transferir para Fila: {setor === 'Elétrica Automotiva' ? 'Elétrica ⚡' : setor === 'Mecânica/Hidráulica' ? 'Mecânica 🔧' : 'AP 📡'}
+                  Transferir para Fila: {setor === 'Elétrica' ? 'Elétrica ⚡' : setor === 'Mecânica' ? 'Mecânica 🔧' : setor === 'Borracharia' ? 'Borracharia 🔧': 'AP 📡'}
                 </button>
               )}
 

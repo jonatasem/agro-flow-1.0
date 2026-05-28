@@ -17,8 +17,8 @@ export interface Equipamento {
 }
 
 export interface OrdemServicoAgro {
-  id: string;             // ID interno (_id) do MongoDB
-  idCustomizado: string;  // ID de negócio padrão Zilor (Ex: OS-850002-4321)
+  id: string;
+  idCustomizado: string; 
   prefixoTrator: string;
   idOperador: string;
   criadoPor: string;
@@ -26,8 +26,8 @@ export interface OrdemServicoAgro {
   modeloPiloto: string;
   qruDescricao: string;
   status: 'pendente' | 'em_andamento' | 'concluido';
-  triagemSetor: 'Agricultura de Precisão' | 'Elétrica Automotiva' | 'Mecânica/Hidráulica';
-  tipoCausa?: 'Hardware (Defeito Real)' | 'Erro Operacional (Falta de Treinamento)' | 'Infraestrutura/Sinal';
+  triagemSetor: 'Agricultura de Precisão' | 'Elétrica' | 'Mecânica' | 'Borracharia';
+  tipoCausa?: 'Hardware (Defeito Real)' | 'Erro Operacional' | 'Infraestrutura (Sinal)';
   solucaoTecnico?: string;
   tecnicoResponsavel?: string;
   dataCriacao: string; 

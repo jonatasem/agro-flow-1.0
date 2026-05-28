@@ -26,20 +26,21 @@ export default function App() {
   const [filtroOperador, setFiltroOperador] = useState('');
   const [setorAtivo, setSetorAtivo] = useState<OrdemServicoAgro['triagemSetor']>('Agricultura de Precisão');
 
-  // 🗺️ Filtro de Cidade/Usina com o padrão 'Salto Botelho'
+  // Filtro de Cidade/Usina com o padrão 'Salto Botelho'
   const [cidadeAtiva, setCidadeAtiva] = useState<string>('Salto Botelho');
 
-  // 🔄 Estado de controle para o componente de Carregamento (Loading)
+  // Estado de controle para o componente de Carregamento (Loading)
   const [carregando, setCarregando] = useState<boolean>(true);
 
-  // 🔄 Novos estados para armazenar os dados mestre de frotas e operadores para o filtro
+  // Novos estados para armazenar os dados mestre de frotas e operadores para o filtro
   const [frotasFiltro, setFrotasFiltro] = useState<Equipamento[]>([]);
   const [operadoresFiltro, setOperadoresFiltro] = useState<Operador[]>([]);
 
   const setoresDisponiveis: OrdemServicoAgro['triagemSetor'][] = [
     'Agricultura de Precisão',
-    'Elétrica Automotiva',
-    'Mecânica/Hidráulica'
+    'Elétrica',
+    'Mecânica',
+    'Borracharia'
   ];
 
   const cidadesDisponiveis = [
@@ -49,7 +50,7 @@ export default function App() {
     'Lençóis Paulista'
   ];
 
-  // 🔄 Função para carregar as ordens reais do MongoDB Atlas via API
+  // Função para carregar as ordens reais do MongoDB Atlas via API
   const carregarOrdens = async () => {
     try {
       const resposta = await api.get('/ordens');
@@ -59,7 +60,7 @@ export default function App() {
     }
   };
 
-  // 🔄 Função para carregar dados do banco para alimentar o autocomplete dos filtros
+  // Função para carregar dados do banco para alimentar o autocomplete dos filtros
   const carregarDadosMestreFiltro = async () => {
     try {
       const [resFrotas, resOperadores] = await Promise.all([
@@ -73,7 +74,7 @@ export default function App() {
     }
   };
 
-  // 🔄 Carrega tudo em paralelo ao montar o componente
+  // Carrega tudo em paralelo ao montar o componente
   useEffect(() => {
     const inicializarPainel = async () => {
       setCarregando(true);
@@ -92,7 +93,7 @@ export default function App() {
     inicializarPainel();
   }, []);
 
-  // 🎯 Filtro estrutural do monitor Kanbam
+  // Filtro estrutural do monitor Kanbam
   const ordensFiltradasKanban = useMemo(() => {
     return ordens.filter(os => (
       (filtroFrota === '' || os.prefixoTrator.includes(filtroFrota)) &&
@@ -102,7 +103,7 @@ export default function App() {
     ));
   }, [ordens, filtroFrota, filtroOperador, setorAtivo, cidadeAtiva]);
 
-  // 💾 Criar ou Atualizar uma Ordem no Banco de Dados
+  // Criar ou Atualizar uma Ordem no Banco de Dados
   const salvarOS = async (dadosForm: Partial<OrdemServicoAgro>) => {
     try {
       if (idEmEdicao) {
@@ -110,7 +111,6 @@ export default function App() {
         setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
         setIdEmEdicao(null);
       } else {
-        // 🎯 CORREÇÃO DEFINITIVA: Removido 'usinaBase: cidadeAtiva'.
         // Agora aceitamos os dados exatos de usinaBase criados de forma inteligente no FormularioOS.
         const payloadZilorAtlas = {
           ...dadosForm,
@@ -239,7 +239,7 @@ export default function App() {
                     const qtdPendentes = ordens.filter(os => os.triagemSetor === setor && os.status === 'pendente' && os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim()).length;
                     return (
                       <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
-                        <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica Automotiva' ? '⚡ Elétrica' : '🔧 Mecânica'}</span>
+                        <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica' ? '⚡ Elétrica' : setor === 'Mecânica' ? '🔧 Mecânica' : '🔧 Borracharia'}</span>
                         {qtdPendentes > 0 && <span className="text-[10px] bg-green-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdPendentes}</span>}
                       </button>
                     );

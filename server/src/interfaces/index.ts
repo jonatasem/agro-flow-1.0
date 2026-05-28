@@ -12,8 +12,8 @@ export interface CreateOrdemInput {
 
 export interface UpdateOrdemInput {
   status?: 'pendente' | 'em_andamento' | 'concluido';
-  triagemSetor?: 'Agricultura de Precisão' | 'Elétrica Automotiva' | 'Mecânica/Hidráulica';
-  tipoCausa?: 'Hardware (Defeito Real)' | 'Erro Operacional (Falta de Treinamento)' | 'Infraestrutura/Sinal';
+  triagemSetor?: 'Agricultura de Precisão' | 'Elétrica Automotiva' | 'Mecânica' | 'Borracharia';
+  tipoCausa?: 'Hardware (Defeito Real)' | 'Erro Operacional' | 'Infraestrutura (Sinal)';
   solucaoTecnico?: string;
   tecnicoResponsavel?: string;
 }
