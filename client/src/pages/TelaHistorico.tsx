@@ -4,10 +4,10 @@ import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText }
 
 // Conexão com a API e tipos do banco de dados
 import api from '../services/api';
-import type { Equipamento, Operador } from '../interface/index.js';
+import type { Equipamento, OrdemServicoAgro } from '../interface/index.js';
 
 interface TelaHistoricoProps {
-  ordens: any[];
+  ordens: OrdemServicoAgro[];
 }
 
 export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
@@ -21,7 +21,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
 
   // Estados dinâmicos alimentados via API do MongoDB Atlas
   const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
-  const [operadoresCadastrados, setOperadoresCadastrados] = useState<Operador[]>([]);
+  const [operadoresCadastrados, setOperadoresCadastrados] = useState<any[]>([]);
 
   // Carrega os dados mestre do MongoDB para habilitar o autocomplete buscador
   useEffect(() => {
@@ -54,17 +54,17 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
     });
   }, [ordens, dataInicio, dataFim, setor, usina, equipamento, operador]);
 
-  // Cálculos Estatísticos de Porcentagem baseados no Atlas
+  // Cálculos Estatísticos baseados exatamente na sua interface OrdemServicoAgro
   const analiseMetricas = useMemo(() => {
     let hardware = 0;
     let operacional = 0;
     let sinal = 0;
 
     dadosFiltrados.forEach(os => {
-      if (os.status === 'concluido') {
+      if (os.status === 'concluido' && os.tipoCausa) {
         if (os.tipoCausa === 'Hardware (Defeito Real)') hardware++;
-        else if (os.tipoCausa === 'Erro Operacional (Falta de Treinamento)') operacional++;
-        else if (os.tipoCausa === 'Infraestrutura/Sinal') sinal++;
+        else if (os.tipoCausa === 'Erro Operacional') operacional++;
+        else if (os.tipoCausa === 'Infraestrutura (Sinal)') sinal++;
       }
     });
 
@@ -97,6 +97,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
 
   return (
     <div className="space-y-6 text-xs antialiased text-slate-200">
+      
       {/* SEÇÃO DE FILTROS AVANÇADOS */}
       <section className="bg-[#181b26] border border-agro-border rounded-2xl p-5 shadow-lg">
         <h3 className="text-sm font-bold text-white mb-4 flex items-center gap-2 uppercase tracking-wider">
@@ -134,7 +135,6 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             </select>
           </div>
 
-          {/* Autocomplete Buscador de Frotas/Equipamentos */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Truck size={10}/> Equipamento</label>
             <input 
@@ -146,19 +146,14 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-equipamentos-db">
-              {frotasCadastradas
-                // Limita para renderizar no máximo as 15 primeiras opções no HTML
-                .slice(0, 5) 
-                .map(frota => (
-                  <option key={frota.prefixo} value={frota.prefixo}>
-                    {frota.modeloEquipamento} ({frota.usinaAlocada})
-                  </option>
-                ))
-              }
+              {frotasCadastradas.map(frota => (
+                <option key={frota.prefixo} value={frota.prefixo}>
+                  {frota.modeloEquipamento} ({frota.usinaAlocada})
+                </option>
+              ))}
             </datalist>
           </div>
 
-          {/* Autocomplete Buscador de Operadores */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><User size={10}/> Operador</label>
             <input 
@@ -170,15 +165,9 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-operadores-db">
-              {operadoresCadastrados
-                // Limita para renderizar no máximo as 15 primeiras opções no HTML
-                .slice(0, 5) 
-                .map(op => (
-                  <option key={op.codigo} value={op.codigo}>
-                    {op.nome}
-                  </option>
-                ))
-              }
+              {operadoresCadastrados.map(op => (
+                <option key={op.codigo} value={op.codigo}>{op.nome}</option>
+              ))}
             </datalist>
           </div>
         </div>
@@ -192,16 +181,15 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           </button>
         </div>
       </section>
-
-      {/* MÉTRICAS E PORCENTAGEM POR GRÁFICO */}
+      {/* SEÇÃO DE MÉTRICAS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-          <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 shadow-md">
+          <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 transition-colors duration-200 shadow-md">
             <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Total O.S. Filtradas</span>
-            <span className="text-3xl font-black text-white mt-1">{analiseMetricas.totalChamados}</span>
+            <span className="text-3xl font-black mt-1 text-white">{analiseMetricas.totalChamados}</span>
           </div>
 
-          <div className="bg-[#181b26] border border-amber-500/20 p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 shadow-md">
+          <div className="bg-[#181b26] border border-amber-500/20 p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 transition-colors duration-200 shadow-md">
             <span className="text-[10px] font-bold uppercase text-amber-500 tracking-wider">Índice Erro Operacional</span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-3xl font-black text-amber-400">{analiseMetricas.porcentagemOperacional}%</span>
@@ -210,7 +198,8 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           </div>
         </div>
 
-        <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl lg:col-span-2 shadow-md flex flex-col justify-between min-h-50">
+        {/* GRÁFICO RECHARTS COM CORES INTEGRADAS AO TEMA ESCURO */}
+        <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl lg:col-span-2 flex flex-col justify-between min-h-50 transition-colors duration-200 shadow-md">
           <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-4">Impacto Percentual por Tipo de Causa (O.S. Concluídas)</h4>
           
           {analiseMetricas.totalConcluidos > 0 ? (
@@ -221,19 +210,19 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                     <Pie data={analiseMetricas.dadosGrafico} cx="50%" cy="50%" innerRadius={42} outerRadius={60} paddingAngle={4} dataKey="value">
                       {analiseMetricas.dadosGrafico.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: '#1e2230', borderColor: '#2a3042', borderRadius: '10px', fontSize: '11px' }}/>
+                    <Tooltip contentStyle={{ backgroundColor: '#1e2230', borderColor: '#2a3042', borderRadius: '10px', fontSize: '11px', color: '#ffffff' }}/>
                   </PieChart>
                 </ResponsiveContainer>
               </div>
 
               <div className="grid grid-cols-1 gap-2 w-full">
                 {analiseMetricas.dadosGrafico.map((item, index) => (
-                  <div key={index} className="flex items-center justify-between gap-4 bg-agro-dark/50 p-2.5 rounded-xl border border-agro-border/30 w-full">
+                  <div key={index} className="flex items-center justify-between gap-4 p-2.5 rounded-xl border w-full bg-agro-dark/50 border-agro-border/30">
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-slate-300 font-medium truncate">{item.name}</span>
+                      <span className="font-medium truncate text-slate-300">{item.name}</span>
                     </div>
-                    <span className="text-white font-black shrink-0">{item.porcentagem}%</span>
+                    <span className="font-black shrink-0 text-white">{item.porcentagem}%</span>
                   </div>
                 ))}
               </div>
@@ -247,21 +236,21 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
       </div>
 
       {/* REGISTROS GERAIS DO HISTÓRICO */}
-      <section className="bg-[#181b26] border border-agro-border rounded-2xl overflow-hidden shadow-lg">
-        <div className="p-4 border-b border-agro-border bg-[#1a1e2b] flex items-center gap-2">
+      <section className="bg-[#181b26] border border-agro-border rounded-2xl overflow-hidden shadow-md">
+        <div className="p-4 flex items-center gap-2 border-b border-agro-border bg-[#1a1e2b]">
           <FileText size={14} className="text-slate-400" />
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Registros Gerais do Histórico</h4>
         </div>
 
-        {/* 1. LAYOUT ADAPTADO PARA MOBILE (CARDS) */}
+        {/* 1. LAYOUT MOBILE */}
         <div className="block md:hidden divide-y divide-agro-border/60 bg-[#151822]">
           {dadosFiltrados.length > 0 ? (
             dadosFiltrados.map(os => (
-              <div key={os.idCustomizado} className="p-4 space-y-3 hover:bg-agro-card/30 transition">
+              <div key={os.idCustomizado} className="p-4 space-y-3 transition hover:bg-agro-card/30">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
-                    <span className="font-bold text-white text-xs">{os.idCustomizado}</span>
+                    <span className="font-bold text-xs text-white">{os.idCustomizado}</span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">{os.dataCriacao} às {os.horaCriacao}</span>
                   </div>
                   <div className="text-right">
@@ -273,22 +262,30 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                 <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
                   <div>
                     <span className="text-[9px] font-bold text-slate-500 block uppercase">Usina</span>
-                    <span className="text-slate-300 font-medium truncate block">{os.usinaBase || 'Geral'}</span>
+                    <span className="font-medium truncate block text-slate-300">{os.usinaBase || 'Geral'}</span>
                   </div>
                   <div>
                     <span className="text-[9px] font-bold text-slate-500 block uppercase">Setor Responsável</span>
-                    <span className="text-slate-300 font-medium truncate block">{os.triagemSetor}</span>
+                    <span className="font-medium truncate block text-slate-300">{os.triagemSetor}</span>
                   </div>
                 </div>
 
-                <div className="bg-agro-dark/60 p-2.5 rounded-xl border border-agro-border/40 space-y-1.5">
+                <div className="p-2.5 rounded-xl border space-y-1.5 bg-agro-dark/60 border-agro-border/40">
                   <div>
                     <span className="text-[9px] font-bold text-slate-500 block uppercase">Causa Real</span>
-                    <span className={`font-bold text-[11px] ${os.status !== 'concluido' ? 'text-slate-500' : os.tipoCausa === 'Hardware (Defeito Real)' ? 'text-emerald-400' : os.tipoCausa === 'Erro Operacional (Falta de Treinamento)' ? 'text-amber-400' : 'text-blue-400'}`}>
+                    <span className={`font-bold text-[11px] ${
+                      os.status !== 'concluido' 
+                        ? 'text-slate-500' 
+                        : os.tipoCausa === 'Hardware (Defeito Real)' 
+                        ? 'text-emerald-400' 
+                        : os.tipoCausa === 'Erro Operacional' 
+                        ? 'text-amber-400' 
+                        : 'text-blue-400'
+                    }`}>
                       {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
                     </span>
                   </div>
-                  <div className="border-t border-agro-border/30 pt-1.5">
+                  <div className="border-t pt-1.5 border-agro-border/30">
                     <span className="text-[9px] font-bold text-slate-500 block uppercase">Histórico Técnico</span>
                     <p className="text-slate-400 italic text-[11px] wrap-break-word line-clamp-3">
                       {os.solucaoTecnico || os.qruDescricao || 'Sem descrição registrada.'}
@@ -302,11 +299,11 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           )}
         </div>
 
-        {/* 2. LAYOUT ADAPTADO PARA DESKTOP (TABELA ROBUSTA) */}
+        {/* 2. LAYOUT DESKTOP */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left table-fixed border-collapse">
             <thead>
-              <tr className="bg-agro-dark text-slate-400 text-[10px] font-bold uppercase tracking-wider border-b border-agro-border">
+              <tr className="bg-agro-dark text-slate-400 font-extrabold border-b border-agro-border">
                 <th className="p-3 w-[15%]">Identificação</th>
                 <th className="p-3 w-[12%]">Equipamento</th>
                 <th className="p-3 w-[15%]">Usina</th>
@@ -318,9 +315,9 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             <tbody className="divide-y divide-agro-border/40 text-slate-300">
               {dadosFiltrados.length > 0 ? (
                 dadosFiltrados.map(os => (
-                  <tr key={os.idCustomizado} className="hover:bg-agro-card/40 transition text-[11px]">
+                  <tr key={os.idCustomizado} className="transition text-[11px] hover:bg-agro-card/40">
                     <td className="p-3 whitespace-nowrap">
-                      <div className="font-bold text-white text-[11px]">{os.idCustomizado}</div>
+                      <div className="font-bold text-[11px] text-white">{os.idCustomizado}</div>
                       <div className="text-[10px] text-slate-500 mt-0.5">{os.dataCriacao} - {os.horaCriacao}</div>
                     </td>
                     <td className="p-3 font-bold text-amber-500 whitespace-nowrap">
@@ -330,25 +327,31 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                       {os.usinaBase || 'Geral'}
                     </td>
                     <td className="p-3">
-                      <span className="bg-agro-dark border border-agro-border px-2 py-0.5 rounded text-slate-400 block text-center truncate" title={os.triagemSetor}>
+                      <span className="border px-2 py-0.5 rounded block text-center truncate bg-agro-dark border-agro-border text-slate-400 font-medium" title={os.triagemSetor}>
                         {os.triagemSetor}
                       </span>
                     </td>
                     <td className="p-3 truncate">
-                      <span className={`font-bold ${os.status !== 'concluido' ? 'text-slate-500' : os.tipoCausa === 'Hardware (Defeito Real)' ? 'text-emerald-400' : os.tipoCausa === 'Erro Operacional (Falta de Treinamento)' ? 'text-amber-400' : 'text-blue-400'}`} title={os.status !== 'concluido' ? 'Em aberto' : os.tipoCausa}>
+                      <span className={`font-bold ${
+                        os.status !== 'concluido' 
+                          ? 'text-slate-500' 
+                          : os.tipoCausa === 'Hardware (Defeito Real)' 
+                          ? 'text-emerald-400' 
+                          : os.tipoCausa === 'Erro Operacional' 
+                          ? 'text-amber-400' 
+                          : 'text-blue-400'
+                      }`}>
                         {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
                       </span>
                     </td>
-                    <td className="p-3 text-slate-400 italic truncate" title={os.solucaoTecnico || os.qruDescricao}>
-                      {os.solucaoTecnico || os.qruDescricao || '---'}
+                    <td className="p-3 truncate" title={os.solucaoTecnico || os.qruDescricao || 'Sem descrição.'}>
+                      {os.solucaoTecnico || os.qruDescricao || 'Sem descrição registrada.'}
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-500 italic">
-                    Nenhum registro encontrado com os filtros aplicados.
-                  </td>
+                  <td colSpan={6} className="p-8 text-center text-slate-500 italic">Nenhum registro encontrado.</td>
                 </tr>
               )}
             </tbody>
