@@ -1,33 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import type { FormularioOSProps, Equipamento, Operador } from '../interface/index.js';
-import { useTheme } from '../context/ThemeContext';
 
 export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar }: FormularioOSProps) {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  const classes = {
-    formBg: isDark ? 'bg-[#181b26] border-agro-border' : 'bg-white border-emerald-100 shadow-xl',
-    titulo: isDark ? 'text-white' : 'text-emerald-900',
-    labels: isDark ? 'text-slate-400' : 'text-emerald-800 font-bold',
-    inputs: isDark ? 'bg-agro-dark border-agro-border text-slate-200 focus:border-green-500/50' : 'bg-emerald-50/40 border-emerald-200 text-emerald-950 focus:border-emerald-600',
-    btnCancelar: isDark ? 'bg-agro-card hover:bg-agro-border text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-  };
-
   const [prefixo, setPrefixo] = useState('');
   const [operador, setOperador] = useState('');
   const [criador, setCriador] = useState('');
   const [frente, setFrente] = useState('');
   const [atividade, setAtividade] = useState('');
   const [qru, setQru] = useState('');
+  
+  // 🗺️ Novo Estado para capturar a cidade de abertura do chamado
   const [usinaSelecionada, setUsinaSelecionada] = useState('');
 
+  // Estados dinâmicos que alimentarão as tags <datalist> direto do Banco de Dados
   const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
   const [operadoresCadastrados, setOperadoresCadastrados] = useState<Operador[]>([]);
 
   const cidadesZilor = ['Salto Botelho', 'Quatá', 'Barra Grande', 'Lençóis Paulista'];
 
+  // Carrega os dados mestre do MongoDB para o Autocomplete do formulário
   useEffect(() => {
     const carregarDadosMestre = async () => {
       try {
@@ -41,9 +33,11 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         console.error("Erro ao alimentar campos do formulário:", error);
       }
     };
+
     carregarDadosMestre();
   }, []);
 
+  // Monitora a digitação da frota para pré-selecionar a Usina Alocada do Trator
   useEffect(() => {
     if (!idEmEdicao && prefixo.trim()) {
       const tratorEncontrado = frotasCadastradas.find(
@@ -72,10 +66,13 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Procura o equipamento selecionado para auto-injetar os dados corretos no payload
     const equipamentoInfo = frotasCadastradas.find(
       f => f.prefixo.trim().toLowerCase() === prefixo.trim().toLowerCase()
     );
 
+    // Hierarquia: Escolha manual do select > Cadastro do trator > Fallback Geral
     const cidadeFinal = usinaSelecionada || (equipamentoInfo ? equipamentoInfo.usinaAlocada : 'Geral Zilor');
     
     onSalvar({
@@ -85,14 +82,14 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       frente: frente,
       atividade: atividade,
       modeloPiloto: equipamentoInfo ? equipamentoInfo.modeloPilotoPadrao : 'Não Identificado',
-      usinaBase: cidadeFinal,
+      usinaBase: cidadeFinal, // 🚀 Envia a cidade vinculada ou modificada manualmente
       qruDescricao: qru
     });
   };
 
   return (
-    <section className={`max-w-2xl mx-auto border rounded-2xl p-6 text-xs transition-all duration-200 ${classes.formBg}`}>
-      <h2 className={`text-lg font-black mb-1 ${classes.titulo}`}>
+    <section className="max-w-2xl mx-auto bg-[#181b26] border border-agro-border rounded-2xl p-6 shadow-xl text-xs">
+      <h2 className="text-lg font-black text-white mb-1">
         {idEmEdicao ? '📝 Editar Registro de Chamado' : '🚀 Registrar Nova O.S. Operacional'}
       </h2>
       <p className="text-slate-400 mb-6">Insira os dados do equipamento ativo para sincronia no MongoDB.</p>
@@ -100,7 +97,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Prefixo do Trator / Equipamento *</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Prefixo do Trator / Equipamento *</label>
             <input 
               type="text" 
               required 
@@ -108,12 +105,12 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               value={prefixo} 
               onChange={e => setPrefixo(e.target.value)} 
               placeholder="Digite ou selecione a frota..." 
-              className={`w-full rounded-xl p-2.5 outline-none transition ${classes.inputs}`} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
             <datalist id="lista-frotas-db">
               {frotasCadastradas
-                .filter(frota => frota.prefixo.toLowerCase().includes(prefixo.toLowerCase()))
-                .slice(0, 15) 
+                // Limita para renderizar no máximo as 15 primeiras opções no HTML
+                .slice(0, 5) 
                 .map(frota => (
                   <option key={frota.prefixo} value={frota.prefixo}>
                     {frota.modeloEquipamento} ({frota.usinaAlocada})
@@ -124,7 +121,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
           </div>
 
           <div>
-            <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Código do Operador *</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Código do Operador *</label>
             <input 
               type="text" 
               required 
@@ -132,14 +129,16 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               value={operador} 
               onChange={e => setOperador(e.target.value)} 
               placeholder="Digite ou selecione o operador..." 
-              className={`w-full rounded-xl p-2.5 outline-none transition ${classes.inputs}`} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
             <datalist id="lista-operadores-db">
               {operadoresCadastrados
-                .filter(op => op.codigo.includes(operador) || op.nome.toLowerCase().includes(operador.toLowerCase()))
-                .slice(0, 15) 
+                // Limita para renderizar no máximo as 15 primeiras opções no HTML
+                .slice(0, 5) 
                 .map(op => (
-                  <option key={op.codigo} value={op.codigo}>{op.nome}</option>
+                  <option key={op.codigo} value={op.codigo}>
+                    {op.nome}
+                  </option>
                 ))
               }
             </datalist>
@@ -148,44 +147,45 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Quem está abrindo a OS? *</label>
-            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className={`w-full rounded-xl p-2.5 outline-none transition ${classes.inputs}`} />
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
+            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
           <div>
-            <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Frente *</label>
-            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className={`w-full rounded-xl p-2.5 outline-none transition ${classes.inputs}`} />
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frente *</label>
+            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
           <div>
-            <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Atividade *</label>
-            <input type="text" required value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className={`w-full rounded-xl p-2.5 outline-none transition ${classes.inputs}`} />
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Atividade *</label>
+            <input type="text" required value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
           </div>
         </div>
 
+        {/* Campo Seletor de Usina/Cidade */}
         <div>
-          <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Cidade / Usina Base *</label>
+          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Cidade / Usina Base *</label>
           <select 
             required
             value={usinaSelecionada}
             onChange={e => setUsinaSelecionada(e.target.value)}
-            className={`w-full rounded-xl p-2.5 outline-none font-bold transition ${classes.inputs}`}
+            className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold"
           >
             <option value="" disabled>Selecione a usina para este chamado...</option>
             {cidadesZilor.map(c => (
-              <option key={c} value={c} className="text-slate-900">🏢 {c}</option>
+              <option key={c} value={c}>🏢 {c}</option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Descrição do QRU *</label>
-          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className={`w-full rounded-xl p-2.5 outline-none resize-none transition ${classes.inputs}`} />
+          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
+          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50" />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancelar} className={`font-bold px-5 py-2.5 rounded-xl transition cursor-pointer ${classes.btnCancelar}`}>
+          <button type="button" onClick={onCancelar} className="bg-agro-card hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
             Cancelar
           </button>
-          <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-5 py-2.5 rounded-xl shadow transition cursor-pointer flex items-center gap-1">
+          <button type="submit" className="bg-green-500 hover:bg-green-600 text-slate-950 font-black px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1">
             {idEmEdicao ? 'Atualizar O.S.' : 'Salvar no MongoDB Atlas 🚀'}
           </button>
         </div>

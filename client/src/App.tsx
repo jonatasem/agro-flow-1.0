@@ -15,25 +15,8 @@ import ColunaKanban from './components/ColunaKanban';
 import ModalDetalhes from './components/ModalDetalhes';
 import TelaHistorico from './pages/TelaHistorico';
 import LoadingStatus from './components/LoadingStatus'; 
-import { useTheme } from './context/ThemeContext.js';
-import { ThemeProvider } from './context/ThemeContext.js';
-import ThemeToggle from './components/ThemeToggle.js';
 
-function ConteudoApp() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  // Dicionário de Classes Semânticas para Inversão de Cores (Dark vs Light/Verde)
-  const classes = {
-    corpoLayout: isDark ? 'bg-agro-dark text-slate-100' : 'bg-slate-50 text-slate-800',
-    navbar: isDark ? 'bg-[#181b26] border-agro-border' : 'bg-white border-emerald-100 shadow-sm',
-    containerFiltros: isDark ? 'bg-[#181b26] border-agro-border/80' : 'bg-white border-emerald-100 shadow-md',
-    labels: isDark ? 'text-slate-400' : 'text-emerald-800/80 font-bold',
-    inputs: isDark ? 'bg-agro-dark border-agro-border text-slate-200 focus:border-green-500/30' : 'bg-emerald-50/40 border-emerald-200 text-emerald-950 focus:border-emerald-500',
-    subContainers: isDark ? 'bg-[#181b26] border-agro-border/40' : 'bg-white border-emerald-100/80 shadow-sm',
-    btnLimpar: isDark ? 'bg-agro-card hover:bg-agro-border text-slate-300 border-agro-border' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-  };
-
+export default function App() {
   const [ordens, setOrdens] = useState<OrdemServicoAgro[]>([]);
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'criar' | 'historico'>('dashboard');
   const [osSelecionada, setOsSelecionada] = useState<OrdemServicoAgro | null>(null);
@@ -42,9 +25,14 @@ function ConteudoApp() {
   const [filtroFrota, setFiltroFrota] = useState('');
   const [filtroOperador, setFiltroOperador] = useState('');
   const [setorAtivo, setSetorAtivo] = useState<OrdemServicoAgro['triagemSetor']>('Agricultura de Precisão');
+
+  // Filtro de Cidade/Usina com o padrão 'Salto Botelho'
   const [cidadeAtiva, setCidadeAtiva] = useState<string>('Salto Botelho');
+
+  // Estado de controle para o componente de Carregamento (Loading)
   const [carregando, setCarregando] = useState<boolean>(true);
 
+  // Novos estados para armazenar os dados mestre de frotas e operadores para o filtro
   const [frotasFiltro, setFrotasFiltro] = useState<Equipamento[]>([]);
   const [operadoresFiltro, setOperadoresFiltro] = useState<Operador[]>([]);
 
@@ -62,6 +50,7 @@ function ConteudoApp() {
     'Lençóis Paulista'
   ];
 
+  // Função para carregar as ordens reais do MongoDB Atlas via API
   const carregarOrdens = async () => {
     try {
       const resposta = await api.get('/ordens');
@@ -71,6 +60,7 @@ function ConteudoApp() {
     }
   };
 
+  // Função para carregar dados do banco para alimentar o autocomplete dos filtros
   const carregarDadosMestreFiltro = async () => {
     try {
       const [resFrotas, resOperadores] = await Promise.all([
@@ -84,20 +74,26 @@ function ConteudoApp() {
     }
   };
 
+  // Carrega tudo em paralelo ao montar o componente
   useEffect(() => {
     const inicializarPainel = async () => {
       setCarregando(true);
       try {
-        await Promise.all([carregarOrdens(), carregarDadosMestreFiltro()]);
+        await Promise.all([
+          carregarOrdens(),
+          carregarDadosMestreFiltro()
+        ]);
       } catch (error) {
-        console.error("Erro na carga inicial:", error);
+        console.error("Erro na carga inicial do ecossistema:", error);
       } finally {
         setCarregando(false);
       }
     };
+
     inicializarPainel();
   }, []);
 
+  // Filtro estrutural do monitor Kanbam
   const ordensFiltradasKanban = useMemo(() => {
     return ordens.filter(os => (
       (filtroFrota === '' || os.prefixoTrator.includes(filtroFrota)) &&
@@ -107,6 +103,7 @@ function ConteudoApp() {
     ));
   }, [ordens, filtroFrota, filtroOperador, setorAtivo, cidadeAtiva]);
 
+  // Criar ou Atualizar uma Ordem no Banco de Dados
   const salvarOS = async (dadosForm: Partial<OrdemServicoAgro>) => {
     try {
       if (idEmEdicao) {
@@ -114,73 +111,76 @@ function ConteudoApp() {
         setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
         setIdEmEdicao(null);
       } else {
-        const payloadZilorAtlas = { ...dadosForm, triagemSetor: setorAtivo };
+        // Agora aceitamos os dados exatos de usinaBase criados de forma inteligente no FormularioOS.
+        const payloadZilorAtlas = {
+          ...dadosForm,
+          triagemSetor: setorAtivo
+        };
+
         const resposta = await api.post('/ordens', payloadZilorAtlas);
         setOrdens(prev => [resposta.data, ...prev]);
       }
       setAbaAtiva('dashboard');
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Erro ao salvar ordem de serviço:", error);
+      if (error.response && error.response.data) {
+        console.error("Resposta de rejeição do Express:", error.response.data);
+      }
       alert("Não foi possível salvar a O.S. no servidor.");
     }
   };
 
   const deletarOS = async (idCustomizado: string) => {
-    if (confirm(`Deseja remover permanentemente a ordem ${idCustomizado}?`)) {
+    if (confirm(`Deseja remover permanentemente do painel a ordem ${idCustomizado}?`)) {
       try {
         await api.delete(`/ordens/${idCustomizado}`);
         setOrdens(prev => prev.filter(o => o.idCustomizado !== idCustomizado));
       } catch (error) {
+        console.error("Erro ao remover ordem:", error);
         alert("Erro ao eliminar a ordem de serviço do banco.");
       }
     }
   };
 
   return (
-    <div className={`min-h-screen font-sans transition-colors duration-200 ${classes.corpoLayout}`}>
-      
-      {/* HEADER PRINCIPAL */}
-      <nav className={`border-b px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors ${classes.navbar}`}>
-        <div className="flex items-center gap-3">
-          <span className={`text-xl font-black tracking-wider ${isDark ? 'text-white' : 'text-emerald-900'}`}>ZILOR</span>
-          <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm">CORE OPERACIONAL</span>
-          
-          {/* Seletor de Tema posicionado estrategicamente */}
-          <ThemeToggle />
+    <div className="min-h-screen bg-agro-dark text-slate-100 font-sans">
+      <nav className="bg-[#181b26] border-b border-agro-border px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl font-black text-white tracking-wider">ZILOR</span>
+          <span className="bg-green-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded">CORE OPERACIONAL</span>
         </div>
 
-        <div className={`flex p-1 rounded-xl border ${isDark ? 'bg-agro-dark border-agro-border' : 'bg-emerald-50/50 border-emerald-100'}`}>
-          <button onClick={() => setAbaAtiva('dashboard')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'dashboard' ? 'bg-emerald-600 text-white' : isDark ? 'text-slate-400 hover:text-white' : 'text-emerald-800/70 hover:text-emerald-900'}`}>
+        <div className="flex bg-agro-dark p-1 rounded-xl border border-agro-border">
+          <button onClick={() => setAbaAtiva('dashboard')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'dashboard' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
             <LayoutDashboard size={14} /> Monitor Realtime
           </button>
-          <button onClick={() => setAbaAtiva('historico')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'historico' ? 'bg-emerald-600 text-white' : isDark ? 'text-slate-400 hover:text-white' : 'text-emerald-800/70 hover:text-emerald-900'}`}>
+          <button onClick={() => setAbaAtiva('historico')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'historico' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
             <History size={14} /> Histórico Analítico
           </button>
-          <button onClick={() => { setIdEmEdicao(null); setAbaAtiva('criar'); }} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'criar' ? 'bg-emerald-600 text-white' : isDark ? 'text-slate-400 hover:text-white' : 'text-emerald-800/70 hover:text-emerald-900'}`}>
+          <button onClick={() => { setIdEmEdicao(null); setAbaAtiva('criar'); }} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'criar' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
             <PlusCircle size={14} /> Nova OS
           </button>
         </div>
       </nav>
 
-      {/* ÁREA DE CONTEÚDO */}
       <div className="p-4 md:p-6">
         {abaAtiva === 'dashboard' && (
           <>
-            {/* PAINEL DE BUSCA POR COMPONENTES MESTRE */}
-            <section className={`border rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs transition-colors ${classes.containerFiltros}`}>
+            <section className="bg-[#181b26] border border-agro-border/80 rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs">
               <div>
-                <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Filtrar por Frota</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Frota</label>
                 <input 
                   type="text" 
                   list="filtro-frotas-db"
                   placeholder="Ex: 850002" 
                   value={filtroFrota} 
                   onChange={e => setFiltroFrota(e.target.value)} 
-                  className={`w-full border rounded-xl p-2 outline-none transition ${classes.inputs}`} 
+                  className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" 
                 />
                 <datalist id="filtro-frotas-db">
                   {frotasFiltro
-                    .filter(frota => frota.prefixo.toLowerCase().includes(filtroFrota.toLowerCase()))
-                    .slice(0, 10) 
+                    // Limita para renderizar no máximo as 15 primeiras opções no HTML
+                    .slice(0, 5) 
                     .map(frota => (
                       <option key={frota.prefixo} value={frota.prefixo}>
                         {frota.modeloEquipamento} ({frota.usinaAlocada})
@@ -191,37 +191,38 @@ function ConteudoApp() {
               </div>
 
               <div>
-                <label className={`text-[10px] uppercase block mb-1 ${classes.labels}`}>Filtrar por Operador</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Operador</label>
                 <input 
                   type="text" 
                   list="filtro-operadores-db"
                   placeholder="Ex: 23805" 
                   value={filtroOperador} 
                   onChange={e => setFiltroOperador(e.target.value)} 
-                  className={`w-full border rounded-xl p-2 outline-none transition ${classes.inputs}`} 
+                  className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" 
                 />
                 <datalist id="filtro-operadores-db">
                   {operadoresFiltro
-                    .filter(op => op.codigo.toLowerCase().includes(filtroOperador.toLowerCase()) || op.nome.toLowerCase().includes(filtroOperador.toLowerCase()))
-                    .slice(0, 10) 
+                    // Limita para renderizar no máximo as 15 primeiras opções no HTML
+                    .slice(0, 5) 
                     .map(op => (
-                      <option key={op.codigo} value={op.codigo}>{op.nome}</option>
+                      <option key={op.codigo} value={op.codigo}>
+                        {op.nome}
+                      </option>
                     ))
                   }
                 </datalist>
               </div>
               
-              <button onClick={() => { setFiltroFrota(''); setFiltroOperador(''); }} className={`py-2 rounded-xl font-bold border flex items-center justify-center gap-1 cursor-pointer transition ${classes.btnLimpar}`}><RefreshCw size={12}/> Limpar Busca</button>
+              <button onClick={() => { setFiltroFrota(''); setFiltroOperador(''); }} className="bg-agro-card hover:bg-agro-border text-slate-300 py-2 rounded-xl font-bold border border-agro-border flex items-center justify-center gap-1 cursor-pointer"><RefreshCw size={12}/> Limpar Busca</button>
             </section>
 
             {carregando ? (
               <LoadingStatus />
             ) : (
               <>
-                {/* FILTRO DE CIDADES / USINAS */}
-                <section className={`border p-2 rounded-2xl mb-3 flex flex-wrap gap-2 items-center transition-colors ${classes.subContainers}`}>
+                <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-3 flex flex-wrap gap-2 items-center">
                   <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
-                    <MapPin size={12} className={isDark ? 'text-slate-400' : 'text-emerald-700'} /> Cidade / Usina Base:
+                    <MapPin size={12} /> Cidade / Usina Base:
                   </span>
                   {cidadesDisponiveis.map(cidade => {
                     const qtdCidade = ordens.filter(os => os.usinaBase?.toLowerCase().trim() === cidade.toLowerCase().trim() && os.status !== 'concluido').length;
@@ -229,46 +230,55 @@ function ConteudoApp() {
                       <button 
                         key={cidade} 
                         onClick={() => setCidadeAtiva(cidade)} 
-                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 
-                          ${cidadeAtiva === cidade 
-                            ? 'bg-emerald-600 text-white shadow-sm' 
-                            : isDark ? 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white' : 'bg-emerald-50/60 text-emerald-800 border border-emerald-100 hover:bg-emerald-100/50'}`}
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${cidadeAtiva === cidade ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}
                       >
                         <span>🏢 {cidade}</span>
-                        {qtdCidade > 0 && <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-black ${cidadeAtiva === cidade ? 'bg-white text-emerald-950' : 'bg-emerald-600 text-white'}`}>{qtdCidade}</span>}
+                        {qtdCidade > 0 && <span className="text-[10px] bg-green-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdCidade}</span>}
                       </button>
                     );
                   })}
                 </section>
 
-                {/* FILTRO DE SETORES ATIVOS */}
-                <section className={`border p-2 rounded-2xl mb-6 flex flex-wrap gap-2 items-center transition-colors ${classes.subContainers}`}>
+                <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-6 flex flex-wrap gap-2 items-center">
                   <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
-                    <SlidersHorizontal size={12} className={isDark ? 'text-slate-400' : 'text-emerald-700'} /> Setor Ativo:
+                    <SlidersHorizontal size={12} /> Setor Ativo:
                   </span>
                   {setoresDisponiveis.map(setor => {
                     const qtdPendentes = ordens.filter(os => os.triagemSetor === setor && os.status === 'pendente' && os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim()).length;
                     return (
-                      <button 
-                        key={setor} 
-                        onClick={() => setSetorAtivo(setor)} 
-                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2
-                          ${setorAtivo === setor 
-                            ? 'bg-emerald-600 text-white shadow-sm' 
-                            : isDark ? 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white' : 'bg-emerald-50/60 text-emerald-800 border border-emerald-100 hover:bg-emerald-100/50'}`}
-                      >
+                      <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
                         <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica' ? '⚡ Elétrica' : setor === 'Mecânica' ? '🔧 Mecânica' : '🔧 Borracharia'}</span>
-                        {qtdPendentes > 0 && <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-black ${setorAtivo === setor ? 'bg-white text-emerald-950' : 'bg-emerald-600 text-white'}`}>{qtdPendentes}</span>}
+                        {qtdPendentes > 0 && <span className="text-[10px] bg-green-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdPendentes}</span>}
                       </button>
                     );
                   })}
                 </section>
 
-                {/* MONITOR KANBAN */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <ColunaKanban titulo="⏳ Fila Setor" status="pendente" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
-                  <ColunaKanban titulo="🛠️ Em Reparo" status="em_andamento" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
-                  <ColunaKanban titulo="✅ Resolvido" status="concluido" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
+                  <ColunaKanban 
+                    titulo="⏳ Fila Setor" 
+                    status="pendente" 
+                    ordens={ordensFiltradasKanban} 
+                    onSelecionarCard={setOsSelecionada} 
+                    onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                    onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+                  />
+                  <ColunaKanban 
+                    titulo="🛠️ Em Reparo" 
+                    status="em_andamento" 
+                    ordens={ordensFiltradasKanban} 
+                    onSelecionarCard={setOsSelecionada} 
+                    onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                    onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+                  />
+                  <ColunaKanban 
+                    titulo="✅ Resolvido" 
+                    status="concluido" 
+                    ordens={ordensFiltradasKanban} 
+                    onSelecionarCard={setOsSelecionada} 
+                    onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} 
+                    onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
+                  />
                 </div>
               </>
             )}
@@ -280,7 +290,6 @@ function ConteudoApp() {
         {abaAtiva === 'criar' && <FormularioOS idEmEdicao={idEmEdicao} ordens={ordens} onSalvar={salvarOS} onCancelar={() => setAbaAtiva('dashboard')} />}
       </div>
 
-      {/* MODAL DETALHES */}
       {osSelecionada && (
         <ModalDetalhes 
           os={osSelecionada} 
@@ -321,14 +330,5 @@ function ConteudoApp() {
         />
       )}
     </div>
-  );
-}
-
-// Envelopamento com o Contexto para que os Hooks funcionem corretamente
-export default function App() {
-  return (
-    <ThemeProvider>
-      <ConteudoApp />
-    </ThemeProvider>
   );
 }
