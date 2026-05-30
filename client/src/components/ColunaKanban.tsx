@@ -1,5 +1,6 @@
 import type { ColunaKanbanProps } from '../interface/index.js';
 import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, ShieldAlert, Calendar } from 'lucide-react';
+import { formatarDataBR } from '../utils/date.js'; // Importação da função reaproveitável
 
 export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard, onEditar, onExcluir }: ColunaKanbanProps) {
   const ordensFiltradas = ordens.filter(o => o.status === status);
@@ -56,7 +57,7 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                 </div>
               </div>
 
-              {/* Caixa de Texto Central (Descrição ou Solução Técnica) */}
+              {/* Caixa de Texto Central (Descrição ou Solução Técnico) */}
               <div className="bg-agro-dark/50 p-2.5 rounded-xl border border-agro-border/30 text-[11px] leading-relaxed">
                 {temSolucao ? (
                   <div className="text-emerald-400 font-medium flex items-start gap-1.5">
@@ -79,7 +80,7 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                 </div>
                 <div className="flex items-center gap-1 justify-end text-right">
                   <Calendar size={11} />
-                  <span>Data: <strong className="text-slate-400">{os.dataCriacao || '---'}</strong></span>
+                  <span>Data: <strong className="text-slate-400">{formatarDataBR(os.dataCriacao)}</strong></span>
                 </div>
               </div>
 

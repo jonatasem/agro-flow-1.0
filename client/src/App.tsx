@@ -256,7 +256,7 @@ export default function App() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <ColunaKanban 
-                    titulo="⏳ Fila Setor" 
+                    titulo="⏳ Triagem" 
                     status="pendente" 
                     ordens={ordensFiltradasKanban} 
                     onSelecionarCard={setOsSelecionada} 
@@ -264,7 +264,7 @@ export default function App() {
                     onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
                   />
                   <ColunaKanban 
-                    titulo="🛠️ Em Reparo" 
+                    titulo="🛠️ Em manutenção" 
                     status="em_andamento" 
                     ordens={ordensFiltradasKanban} 
                     onSelecionarCard={setOsSelecionada} 
@@ -272,7 +272,7 @@ export default function App() {
                     onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} 
                   />
                   <ColunaKanban 
-                    titulo="✅ Resolvido" 
+                    titulo="✅ Liberado" 
                     status="concluido" 
                     ordens={ordensFiltradasKanban} 
                     onSelecionarCard={setOsSelecionada} 

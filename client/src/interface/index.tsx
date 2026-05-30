@@ -34,6 +34,7 @@ export interface OrdemServicoAgro {
   horaCriacao: string;
   usinaBase?: string;
   frente?: string;
+  atualizadoEm?: string;
 }
 
 export interface TelaHistoricoProps {
