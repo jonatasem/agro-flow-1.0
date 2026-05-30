@@ -1,9 +1,9 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
 
-import api from '../services/api';
-import type { Equipamento, OrdemServicoAgro } from '../interface/index.js';
+import { useDadosMestre } from '../hook/useDadosMestre.js';
+import type { OrdemServicoAgro } from '../interface/index.js';
 
 interface TelaHistoricoProps {
   ordens: OrdemServicoAgro[];
@@ -18,27 +18,8 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
   const [equipamento, setEquipamento] = useState('');
   const [operador, setOperador] = useState('');
 
-  // Estados dinâmicos alimentados via API do MongoDB Atlas
-  const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
-  const [operadoresCadastrados, setOperadoresCadastrados] = useState<any[]>([]);
-
-  // Carrega os dados mestre do MongoDB para habilitar o autocomplete buscador
-  useEffect(() => {
-    const carregarDadosMestre = async () => {
-      try {
-        const [resFrotas, resOperadores] = await Promise.all([
-          api.get('/frotas-mestre'),
-          api.get('/operadores-mestre')
-        ]);
-        setFrotasCadastradas(resFrotas.data);
-        setOperadoresCadastrados(resOperadores.data);
-      } catch (error) {
-        console.error("Erro ao carregar dados mestre na Tela de Histórico:", error);
-      }
-    };
-
-    carregarDadosMestre();
-  }, []);
+  // 🚀 Consome os dados mestre direto do hook isolado, eliminando o useEffect repetido
+  const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
 
   // Processamento do Multi-filtro Acumulativo Real
   const dadosFiltrados = useMemo(() => {
@@ -121,7 +102,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               <option value="Agricultura de Precisão">📡 Agricultura de Precisão</option>
               <option value="Elétrica">⚡ Elétrica</option>
               <option value="Mecânica">🔧 Mecânica</option>
-              <option value="Borracharia">🔧 Borracharia</option>
+              <option value="Borracharia">🚚 Borracharia</option>
             </select>
           </div>
 
@@ -146,7 +127,6 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             />
             <datalist id="lista-equipamentos-db">
               {frotasCadastradas
-                // Limita para renderizar no máximo as 15 primeiras opções no HTML
                 .slice(0, 5) 
                 .map(frota => (
                   <option key={frota.prefixo} value={frota.prefixo}>
@@ -169,7 +149,6 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             />
             <datalist id="lista-operadores-db">
               {operadoresCadastrados
-                // Limita para renderizar no máximo as 15 primeiras opções no HTML
                 .slice(0, 5) 
                 .map(op => (
                   <option key={op.codigo} value={op.codigo}>{op.nome}</option>
@@ -188,6 +167,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           </button>
         </div>
       </section>
+      
       {/* SEÇÃO DE MÉTRICAS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
@@ -200,12 +180,15 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             <span className="text-[10px] font-bold uppercase text-amber-500 tracking-wider">Índice Erro Operacional</span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-3xl font-black text-amber-400">{analiseMetricas.porcentagemOperacional}%</span>
-              <span className="text-slate-400 font-bold text-xs">({analiseMetricas.erroOperacionalQtd} O.S.)</span>
+              <span className="text-amber-500 font-bold text-xs">
+                {analiseMetricas.erroOperacionalQtd}
+                <span className='text-white ml-1'>O.S.</span>
+              </span>
             </div>
           </div>
         </div>
 
-        {/* GRÁFICO RECHARTS COM CORES INTEGRADAS AO TEMA ESCURO */}
+        {/* GRÁFICO RECHARTS */}
         <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl lg:col-span-2 flex flex-col justify-between min-h-50 transition-colors duration-200 shadow-md">
           <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-4">Impacto Percentual por Tipo de Causa (O.S. Concluídas)</h4>
           
@@ -249,7 +232,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Registros Gerais do Histórico</h4>
         </div>
 
-        {/* 1. LAYOUT MOBILE */}
+        {/* LAYOUT MOBILE */}
         <div className="block md:hidden divide-y divide-agro-border/60 bg-[#151822]">
           {dadosFiltrados.length > 0 ? (
             dadosFiltrados.map(os => (
@@ -306,7 +289,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           )}
         </div>
 
-        {/* 2. LAYOUT DESKTOP */}
+        {/* LAYOUT DESKTOP */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left table-fixed border-collapse">
             <thead>

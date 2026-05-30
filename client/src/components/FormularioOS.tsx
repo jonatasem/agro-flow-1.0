@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import api from '../services/api';
-import type { FormularioOSProps, Equipamento, Operador } from '../interface/index.js';
+import { useDadosMestre } from '../hook/useDadosMestre.js';
+import type { FormularioOSProps, OrdemServicoAgro } from '../interface/index.js';
 
 export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar }: FormularioOSProps) {
   const [prefixo, setPrefixo] = useState('');
@@ -10,32 +10,17 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [atividade, setAtividade] = useState('');
   const [qru, setQru] = useState('');
   
-  // 🗺️ Novo Estado para capturar a cidade de abertura do chamado
   const [usinaSelecionada, setUsinaSelecionada] = useState('');
+  const [setorSelecionado, setSetorSelecionado] = useState<OrdemServicoAgro['triagemSetor'] | ''>('');
 
-  // Estados dinâmicos que alimentarão as tags <datalist> direto do Banco de Dados
-  const [frotasCadastradas, setFrotasCadastradas] = useState<Equipamento[]>([]);
-  const [operadoresCadastrados, setOperadoresCadastrados] = useState<Operador[]>([]);
+  // Consome os dados mestre do hook isolado de forma direta e limpa
+  const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
 
   const cidadesZilor = ['Salto Botelho', 'Quatá', 'Barra Grande', 'Lençóis Paulista'];
-
-  // Carrega os dados mestre do MongoDB para o Autocomplete do formulário
-  useEffect(() => {
-    const carregarDadosMestre = async () => {
-      try {
-        const [resFrotas, resOperadores] = await Promise.all([
-          api.get('/frotas-mestre'),
-          api.get('/operadores-mestre')
-        ]);
-        setFrotasCadastradas(resFrotas.data);
-        setOperadoresCadastrados(resOperadores.data);
-      } catch (error) {
-        console.error("Erro ao alimentar campos do formulário:", error);
-      }
-    };
-
-    carregarDadosMestre();
-  }, []);
+  const SetoresZilor: OrdemServicoAgro['triagemSetor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
+  const equipamentosZilor = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
+  const criadoresOsZilor = ["Coa", "Jonatas", "Everton", "Marcelo"];
+  const frentesZilor = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
 
   // Monitora a digitação da frota para pré-selecionar a Usina Alocada do Trator
   useEffect(() => {
@@ -49,6 +34,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
     }
   }, [prefixo, frotasCadastradas, idEmEdicao]);
 
+  // Monitora se o formulário está em modo de edição para carregar os valores antigos
   useEffect(() => {
     if (idEmEdicao) {
       const os = ordens.find(o => o.idCustomizado === idEmEdicao);
@@ -60,6 +46,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         setAtividade(os.atividade || '');
         setQru(os.qruDescricao || '');
         setUsinaSelecionada(os.usinaBase || '');
+        setSetorSelecionado(os.triagemSetor || '');
       }
     }
   }, [idEmEdicao, ordens]);
@@ -67,23 +54,22 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Procura o equipamento selecionado para auto-injetar os dados corretos no payload
     const equipamentoInfo = frotasCadastradas.find(
       f => f.prefixo.trim().toLowerCase() === prefixo.trim().toLowerCase()
     );
 
-    // Hierarquia: Escolha manual do select > Cadastro do trator > Fallback Geral
     const cidadeFinal = usinaSelecionada || (equipamentoInfo ? equipamentoInfo.usinaAlocada : 'Geral Zilor');
     
     onSalvar({
       prefixoTrator: prefixo.trim(),
       idOperador: operador.trim(),
-      criadoPor: criador,
-      frente: frente,
-      atividade: atividade,
+      criadoPor: criador.trim(),
+      frente: frente.trim(),
+      atividade: atividade.trim(),
       modeloPiloto: equipamentoInfo ? equipamentoInfo.modeloPilotoPadrao : 'Não Identificado',
-      usinaBase: cidadeFinal, // 🚀 Envia a cidade vinculada ou modificada manualmente
-      qruDescricao: qru
+      usinaBase: cidadeFinal,
+      triagemSetor: setorSelecionado as OrdemServicoAgro['triagemSetor'],
+      qruDescricao: qru.trim()
     });
   };
 
@@ -95,9 +81,10 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       <p className="text-slate-400 mb-6">Insira os dados do equipamento ativo para sincronia no MongoDB.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Linha 1: Frota e Operador */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Prefixo do Trator / Equipamento *</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frota do Equipamento *</label>
             <input 
               type="text" 
               required 
@@ -109,8 +96,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
             />
             <datalist id="lista-frotas-db">
               {frotasCadastradas
-                // Limita para renderizar no máximo as 15 primeiras opções no HTML
-                .slice(0, 5) 
+                .slice(0, 5)
                 .map(frota => (
                   <option key={frota.prefixo} value={frota.prefixo}>
                     {frota.modeloEquipamento} ({frota.usinaAlocada})
@@ -133,8 +119,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
             />
             <datalist id="lista-operadores-db">
               {operadoresCadastrados
-                // Limita para renderizar no máximo as 15 primeiras opções no HTML
-                .slice(0, 5) 
+                .slice(0, 5)
                 .map(op => (
                   <option key={op.codigo} value={op.codigo}>
                     {op.nome}
@@ -145,42 +130,103 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
           </div>
         </div>
 
+        {/* Linha 2: Criador, Frente e Atividade */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
-            <input type="text" required value={criador} onChange={e => setCriador(e.target.value)} placeholder="Ex: COA - Central" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
+            <input 
+              type="text" 
+              required 
+              list="lista-criadores-db"
+              value={criador} 
+              onChange={e => setCriador(e.target.value)} 
+              placeholder="Ex: COA - Central" 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
+            />
+            <datalist id="lista-criadores-db">
+              {criadoresOsZilor.map(c => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
           </div>
+          
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frente *</label>
-            <input type="text" required value={frente} onChange={e => setFrente(e.target.value)} placeholder="Ex: Frente 2" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
+            <input 
+              type="text" 
+              required 
+              list="lista-frentes-db"
+              value={frente} 
+              onChange={e => setFrente(e.target.value)} 
+              placeholder="Ex: Frente 2" 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
+            />
+            <datalist id="lista-frentes-db">
+              {frentesZilor.map(f => (
+                <option key={f} value={f} />
+              ))}
+            </datalist>
           </div>
+          
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Atividade *</label>
-            <input type="text" required value={atividade} onChange={e => setAtividade(e.target.value)} placeholder="Ex: Transbordo" className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" />
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Operação *</label>
+            <input 
+              type="text" 
+              required 
+              list="lista-equipamentos-db"
+              value={atividade} 
+              onChange={e => setAtividade(e.target.value)} 
+              placeholder="Ex: Transbordo" 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
+            />
+            <datalist id="lista-equipamentos-db">
+              {equipamentosZilor.map(eq => (
+                <option key={eq} value={eq} />
+              ))}
+            </datalist>
           </div>
         </div>
 
-        {/* Campo Seletor de Usina/Cidade */}
-        <div>
-          <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Cidade / Usina Base *</label>
-          <select 
-            required
-            value={usinaSelecionada}
-            onChange={e => setUsinaSelecionada(e.target.value)}
-            className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold"
-          >
-            <option value="" disabled>Selecione a usina para este chamado...</option>
-            {cidadesZilor.map(c => (
-              <option key={c} value={c}>🏢 {c}</option>
-            ))}
-          </select>
+        {/* Linha 3: Usina Alocada e Setor do Chamado */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Usina Alocada *</label>
+            <select 
+              required
+              value={usinaSelecionada}
+              onChange={e => setUsinaSelecionada(e.target.value)}
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold"
+            >
+              <option value="" disabled>Selecione a usina para este chamado...</option>
+              {cidadesZilor.map(c => (
+                <option key={c} value={c}>🏢 {c}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Setor do chamado *</label>
+            <select 
+              required
+              value={setorSelecionado}
+              onChange={e => setSetorSelecionado(e.target.value as OrdemServicoAgro['triagemSetor'])}
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold"
+            >
+              <option value="" disabled>Selecione o setor para este chamado...</option>
+              {SetoresZilor.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
+        {/* Linha 4: Descrição do QRU */}
         <div>
           <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
           <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50" />
         </div>
 
+        {/* Botões de Ação */}
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onCancelar} className="bg-agro-card hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
             Cancelar

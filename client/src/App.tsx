@@ -222,7 +222,7 @@ export default function App() {
               <>
                 <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-3 flex flex-wrap gap-2 items-center">
                   <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1">
-                    <MapPin size={12} /> Cidade / Usina Base:
+                    <MapPin size={12} />Usina Ativa:
                   </span>
                   {cidadesDisponiveis.map(cidade => {
                     const qtdCidade = ordens.filter(os => os.usinaBase?.toLowerCase().trim() === cidade.toLowerCase().trim() && os.status !== 'concluido').length;

@@ -75,7 +75,7 @@ export default function ModalDetalhes({ os, onFechar, onTransferirSetor, onAvanc
                 </button>
               ) : (
                 <button onClick={() => onDarBaixaFinal(os.idCustomizado, { causa, setor, solucao })} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl font-bold transition cursor-pointer">
-                  Dar Baixa Final (Concluir) 🏁
+                  Dar Baixa Final 🏁
                 </button>
               )}
             </div>
