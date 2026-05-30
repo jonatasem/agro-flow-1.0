@@ -4,6 +4,7 @@ import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText }
 
 import { useDadosMestre } from '../hook/useDadosMestre.js';
 import type { OrdemServicoAgro } from '../interface/index.js';
+import { formatarDataBR } from '../utils/date.js'; // Importação do utilitário de data
 
 interface TelaHistoricoProps {
   ordens: OrdemServicoAgro[];
@@ -241,7 +242,8 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
                     <span className="font-bold text-xs text-white">{os.idCustomizado}</span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">{os.dataCriacao} às {os.horaCriacao}</span>
+                    {/* ALTERADO AQUI: Data formatada para Mobile */}
+                    <span className="text-[10px] text-slate-400 block mt-0.5">{formatarDataBR(os.dataCriacao)} às {os.horaCriacao}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-bold text-slate-500 block uppercase">Equipamento</span>
@@ -308,8 +310,8 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                   <tr key={os.idCustomizado} className="transition text-[11px] hover:bg-agro-card/40">
                     <td className="p-3 whitespace-nowrap">
                       <div className="font-bold text-[11px] text-white">{os.idCustomizado}</div>
-                      <p>{}</p>
-                      <div className="text-[10px] text-slate-500 mt-0.5">{os.dataCriacao} - {os.horaCriacao}</div>
+                      {/* ALTERADO AQUI: Data formatada para Desktop */}
+                      <div className="text-[10px] text-slate-500 mt-0.5">{formatarDataBR(os.dataCriacao)} - {os.horaCriacao}</div>
                     </td>
                     <td className="p-3 font-bold text-amber-500 whitespace-nowrap">
                       🚜 {os.prefixoTrator}
