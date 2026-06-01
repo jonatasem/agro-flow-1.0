@@ -1,10 +1,9 @@
 import { useState, useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
-
 import { useDadosMestre } from '../hook/useDadosMestre.js';
 import type { OrdemServicoAgro } from '../interface/index.js';
-import { formatarDataBR } from '../utils/date.js'; // Importação do utilitário de data
+import { formatarDataBR } from '../utils/date.js';
 
 interface TelaHistoricoProps {
   ordens: OrdemServicoAgro[];

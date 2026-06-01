@@ -27,7 +27,7 @@ export function useDadosMestre() {
     };
 
     carregarDados();
-  }, []); // Executa apenas uma vez quando o app ou componente que o chama monta
+  }, []);
 
   return { frotasCadastradas, operadoresCadastrados, carregando, erro };
 }

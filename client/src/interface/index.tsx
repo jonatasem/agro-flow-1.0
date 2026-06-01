@@ -42,7 +42,7 @@ export interface TelaHistoricoProps {
 }
 
 export interface FormularioOSProps {
-  idEmEdicao: string | null; // Recebe o idCustomizado correspondente
+  idEmEdicao: string | null;
   ordens: OrdemServicoAgro[];
   onSalvar: (dadosForm: Partial<OrdemServicoAgro>) => Promise<void>;
   onCancelar: () => void;

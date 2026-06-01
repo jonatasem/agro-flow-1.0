@@ -4,7 +4,10 @@ import { useState, useMemo, useEffect } from 'react';
 import api from './services/api';
 
 // interface (Mantendo a extensão estrita exigida pelo tsconfig)
-import type { OrdemServicoAgro, Equipamento, Operador } from './interface/index.js';
+import type { OrdemServicoAgro } from './interface/index.js';
+
+// Importação do custom hook
+import { useDadosMestre } from './hook/useDadosMestre';
 
 // icons
 import { RefreshCw, PlusCircle, LayoutDashboard, SlidersHorizontal, History, MapPin } from 'lucide-react';
@@ -14,7 +17,7 @@ import FormularioOS from './components/FormularioOS';
 import ColunaKanban from './components/ColunaKanban';
 import ModalDetalhes from './components/ModalDetalhes';
 import TelaHistorico from './pages/TelaHistorico';
-import LoadingStatus from './components/LoadingStatus'; 
+import LoadingStatus from './components/LoadingStatus';
 
 export default function App() {
   const [ordens, setOrdens] = useState<OrdemServicoAgro[]>([]);
@@ -32,9 +35,8 @@ export default function App() {
   // Estado de controle para o componente de Carregamento (Loading)
   const [carregando, setCarregando] = useState<boolean>(true);
 
-  // Novos estados para armazenar os dados mestre de frotas e operadores para o filtro
-  const [frotasFiltro, setFrotasFiltro] = useState<Equipamento[]>([]);
-  const [operadoresFiltro, setOperadoresFiltro] = useState<Operador[]>([]);
+  // Utilizando os dados vindo do custom hook personalizado
+  const { frotasCadastradas: frotasFiltro, operadoresCadastrados: operadoresFiltro } = useDadosMestre();
 
   const setoresDisponiveis: OrdemServicoAgro['triagemSetor'][] = [
     'Agricultura de Precisão',
@@ -60,28 +62,13 @@ export default function App() {
     }
   };
 
-  // Função para carregar dados do banco para alimentar o autocomplete dos filtros
-  const carregarDadosMestreFiltro = async () => {
-    try {
-      const [resFrotas, resOperadores] = await Promise.all([
-        api.get('/frotas-mestre'),
-        api.get('/operadores-mestre')
-      ]);
-      setFrotasFiltro(resFrotas.data);
-      setOperadoresFiltro(resOperadores.data);
-    } catch (error) {
-      console.error("Erro ao carregar dados mestre para o filtro:", error);
-    }
-  };
-
   // Carrega tudo em paralelo ao montar o componente
   useEffect(() => {
     const inicializarPainel = async () => {
       setCarregando(true);
       try {
         await Promise.all([
-          carregarOrdens(),
-          carregarDadosMestreFiltro()
+          carregarOrdens()
         ]);
       } catch (error) {
         console.error("Erro na carga inicial do ecossistema:", error);
@@ -111,7 +98,6 @@ export default function App() {
         setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
         setIdEmEdicao(null);
       } else {
-        // Agora aceitamos os dados exatos de usinaBase criados de forma inteligente no FormularioOS.
         const payloadZilorAtlas = {
           ...dadosForm,
           triagemSetor: setorAtivo
@@ -179,7 +165,6 @@ export default function App() {
                 />
                 <datalist id="filtro-frotas-db">
                   {frotasFiltro
-                    // Limita para renderizar no máximo as 15 primeiras opções no HTML
                     .slice(0, 5) 
                     .map(frota => (
                       <option key={frota.prefixo} value={frota.prefixo}>
@@ -202,7 +187,6 @@ export default function App() {
                 />
                 <datalist id="filtro-operadores-db">
                   {operadoresFiltro
-                    // Limita para renderizar no máximo as 15 primeiras opções no HTML
                     .slice(0, 5) 
                     .map(op => (
                       <option key={op.codigo} value={op.codigo}>
