@@ -1,6 +1,6 @@
-# 🚜 Zilor Tech — Painel de Controle e Monitoramento de Ativos (Agricultura de Precisão)
+# 🚜 Zillor Tech — Painel de Controle e Monitoramento de Ativos (Agricultura de Precisão)
 
-O **Zilor Tech** é uma plataforma de engenharia de software de alta performance desenvolvida sob medida para centralizar, monitorar e gerenciar ativos de tecnologia embarcada, telemetria e automação agrícola nas unidades produtoras da **Zilor** (*Salto Botelho*, *Quatá*, *Lençóis Paulista* e *Barra Grande*).
+O **Zillor Tech** é uma plataforma de engenharia de software de alta performance desenvolvida sob medida para centralizar, monitorar e gerenciar ativos de tecnologia embarcada, telemetria e automação agrícola nas unidades produtoras da **Zillor** (*Salto Botelho*, *Quatá*, *Lençóis Paulista* e *Barra Grande*).
 
 O sistema mitiga um gargalo crítico do ecossistema de campo: a descentralização das informações de manutenção preventiva, calibração e inventário de hardware, substituindo fluxos de comunicação informais por uma arquitetura auditável e orientada a eventos.
 
