@@ -232,7 +232,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
             Cancelar
           </button>
           <button type="submit" className="bg-green-500 hover:bg-green-600 text-slate-950 font-black px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1">
-            {idEmEdicao ? 'Atualizar O.S.' : 'Salvar no MongoDB Atlas 🚀'}
+            {idEmEdicao ? 'Atualizar O.S.' : 'Salvar O.S.'}
           </button>
         </div>
       </form>
