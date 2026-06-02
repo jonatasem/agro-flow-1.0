@@ -24,11 +24,8 @@ model Equipamento {
 model OrdemServico {
   id                 String   @id @default(auto()) @map("_id") @db.ObjectId
   idCustomizado      String   @unique // Ex: 'OS-850002-9912'
-  prefixoTrator      String
-  idOperador         String
   criadoPor          String   // COA - Central, etc.
   atividade          String   // Herdado ou digitado
-  modeloPiloto       String   
   usinaBase          String   
   frente             String
   qruDescricao       String   
@@ -40,6 +37,9 @@ model OrdemServico {
   dataCriacao        String   // YYYY-MM-DD
   horaCriacao        String   // HH:MM
   atualizadoEm       DateTime @updatedAt
+
+  prefixoTrator      String
+  idOperador         String
 
   // Relações no MongoDB usando as chaves declaradas acima
   equipamento Equipamento @relation(fields: [prefixoTrator], references: [frota])

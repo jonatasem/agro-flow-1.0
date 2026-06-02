@@ -33,7 +33,6 @@ export class OrdemServicoService {
         idOperador: dados.idOperador,
         criadoPor: dados.criadoPor,
         atividade: dados.atividade || '',
-        modeloPiloto: dados.modeloPiloto || '',
         usinaBase: dados.usinaBase || '',
         frente: dados.frente || '',
         qruDescricao: dados.qruDescricao || '',
@@ -67,3 +66,4 @@ export class OrdemServicoService {
     return await prisma.operador.findMany();
   }
 }
+

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useDadosMestre } from '../hook/useDadosMestre.js';
 import type { FormularioOSProps, OrdemServicoAgro } from '../interface/index.js';
 
@@ -13,7 +13,6 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [usinaSelecionada, setUsinaSelecionada] = useState('');
   const [setorSelecionado, setSetorSelecionado] = useState<OrdemServicoAgro['triagemSetor'] | ''>('');
 
-  // Consome os dados mestre do hook isolado de forma direta e limpa
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
 
   const cidadesZilor = ['Salto Botelho', 'Quatá', 'Barra Grande', 'Lençóis Paulista'];
@@ -22,19 +21,38 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const criadoresOsZilor = ["Coa", "Jonatas", "Everton", "Marcelo"];
   const frentesZilor = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
 
-  // Monitora a digitação da frota para pré-selecionar a Usina Alocada do Trator
-  useEffect(() => {
-    if (!idEmEdicao && prefixo.trim()) {
-      const tratorEncontrado = frotasCadastradas.find(
-        f => f.prefixo.trim().toLowerCase() === prefixo.trim().toLowerCase()
-      );
-      if (tratorEncontrado) {
-        setUsinaSelecionada(tratorEncontrado.usinaAlocada);
-      }
-    }
-  }, [prefixo, frotasCadastradas, idEmEdicao]);
+  const frotasSugestao = useMemo(() => {
+    const busca = prefixo.trim().toLowerCase();
+    if (!busca) return frotasCadastradas.slice(0, 5);
 
-  // Monitora se o formulário está em modo de edição para carregar os valores antigos
+    return frotasCadastradas
+      .filter(equip => equip.frota.toLowerCase().includes(busca))
+      .sort((a, b) => {
+        const aComecaCom = a.frota.toLowerCase().startsWith(busca);
+        const bComecaCom = b.frota.toLowerCase().startsWith(busca);
+        if (aComecaCom && !bComecaCom) return -1;
+        if (!aComecaCom && bComecaCom) return 1;
+        return a.frota.length - b.frota.length || a.frota.localeCompare(b.frota);
+      })
+      .slice(0, 5);
+  }, [prefixo, frotasCadastradas]);
+
+  const operadoresSugestao = useMemo(() => {
+    const busca = operador.trim().toLowerCase();
+    if (!busca) return operadoresCadastrados.slice(0, 5);
+
+    return operadoresCadastrados
+      .filter(op => op.codigo.toLowerCase().includes(busca))
+      .sort((a, b) => {
+        const aComecaCom = a.codigo.toLowerCase().startsWith(busca);
+        const bComecaCom = b.codigo.toLowerCase().startsWith(busca);
+        if (aComecaCom && !bComecaCom) return -1;
+        if (!aComecaCom && bComecaCom) return 1;
+        return a.codigo.length - b.codigo.length || a.codigo.localeCompare(b.codigo);
+      })
+      .slice(0, 5);
+  }, [operador, operadoresCadastrados]);
+
   useEffect(() => {
     if (idEmEdicao) {
       const os = ordens.find(o => o.idCustomizado === idEmEdicao);
@@ -53,12 +71,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const equipamentoInfo = frotasCadastradas.find(
-      f => f.prefixo.trim().toLowerCase() === prefixo.trim().toLowerCase()
-    );
-
-    const cidadeFinal = usinaSelecionada || (equipamentoInfo ? equipamentoInfo.usinaAlocada : 'Geral Zilor');
+    const cidadeFinal = usinaSelecionada || 'Geral Zilor';
     
     onSalvar({
       prefixoTrator: prefixo.trim(),
@@ -66,7 +79,6 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       criadoPor: criador.trim(),
       frente: frente.trim(),
       atividade: atividade.trim(),
-      modeloPiloto: equipamentoInfo ? equipamentoInfo.modeloPilotoPadrao : 'Não Identificado',
       usinaBase: cidadeFinal,
       triagemSetor: setorSelecionado as OrdemServicoAgro['triagemSetor'],
       qruDescricao: qru.trim()
@@ -81,7 +93,6 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       <p className="text-slate-400 mb-6">Insira os dados do equipamento ativo para sincronia no MongoDB.</p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Linha 1: Frota e Operador */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frota do Equipamento *</label>
@@ -95,14 +106,11 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
             <datalist id="lista-frotas-db">
-              {frotasCadastradas
-                .slice(0, 5)
-                .map(frota => (
-                  <option key={frota.prefixo} value={frota.prefixo}>
-                    {frota.modeloEquipamento} ({frota.usinaAlocada})
-                  </option>
-                ))
-              }
+              {frotasSugestao.map(equip => (
+                <option key={equip.frota} value={equip.frota}>
+                  {equip.modelo}
+                </option>
+              ))}
             </datalist>
           </div>
 
@@ -118,19 +126,15 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
             <datalist id="lista-operadores-db">
-              {operadoresCadastrados
-                .slice(0, 5)
-                .map(op => (
-                  <option key={op.codigo} value={op.codigo}>
-                    {op.nome}
-                  </option>
-                ))
-              }
+              {operadoresSugestao.map(op => (
+                <option key={op.codigo} value={op.codigo}>
+                  {op.nome}
+                </option>
+              ))}
             </datalist>
           </div>
         </div>
 
-        {/* Linha 2: Criador, Frente e Atividade */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
@@ -187,7 +191,6 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
           </div>
         </div>
 
-        {/* Linha 3: Usina Alocada e Setor do Chamado */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Usina Alocada *</label>
@@ -220,13 +223,11 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
           </div>
         </div>
 
-        {/* Linha 4: Descrição do QRU */}
         <div>
           <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
           <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50" />
         </div>
 
-        {/* Botões de Ação */}
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onCancelar} className="bg-agro-card hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
             Cancelar

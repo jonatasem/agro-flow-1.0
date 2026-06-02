@@ -166,9 +166,9 @@ export default function App() {
                 <datalist id="filtro-frotas-db">
                   {frotasFiltro
                     .slice(0, 5) 
-                    .map(frota => (
-                      <option key={frota.prefixo} value={frota.prefixo}>
-                        {frota.modeloEquipamento} ({frota.usinaAlocada})
+                    .map(equip => (
+                      <option key={equip.frota} value={equip.frota}>
+                        {equip.modelo}
                       </option>
                     ))
                   }

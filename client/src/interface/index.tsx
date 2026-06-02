@@ -2,18 +2,12 @@ export interface Operador {
   id?: string;
   codigo: string;
   nome: string;
-  criadoEm?: string;
 }
 
 export interface Equipamento {
   id?: string;
-  prefixo: string;
-  tipo: string;
-  modeloEquipamento: string;
-  modeloPilotoPadrao: string;
-  usinaAlocada: string;
-  setor: string;
-  criadoEm?: string;
+  frota: string;
+  modelo: string;
 }
 
 export interface OrdemServicoAgro {
@@ -23,7 +17,6 @@ export interface OrdemServicoAgro {
   idOperador: string;
   criadoPor: string;
   atividade: string;
-  modeloPiloto: string;
   qruDescricao: string;
   status: 'pendente' | 'em_andamento' | 'concluido';
   triagemSetor: 'Agricultura de Precisão' | 'Elétrica' | 'Mecânica' | 'Borracharia';

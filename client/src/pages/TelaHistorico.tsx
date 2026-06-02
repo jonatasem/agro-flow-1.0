@@ -18,8 +18,46 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
   const [equipamento, setEquipamento] = useState('');
   const [operador, setOperador] = useState('');
 
-  // 🚀 Consome os dados mestre direto do hook isolado, eliminando o useEffect repetido
+  // Consome os dados mestre direto do hook isolado
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
+
+  // 📡 FILTRO PREDITIVO: Equipamentos (Frotas) mais próximos
+  const frotasSugestao = useMemo(() => {
+    const busca = equipamento.trim().toLowerCase();
+    if (!busca) return frotasCadastradas.slice(0, 5);
+
+    return frotasCadastradas
+      .filter(equip => equip.frota.toLowerCase().includes(busca))
+      .sort((a, b) => {
+        const aComecaCom = a.frota.toLowerCase().startsWith(busca);
+        const bComecaCom = b.frota.toLowerCase().startsWith(busca);
+        
+        if (aComecaCom && !bComecaCom) return -1;
+        if (!aComecaCom && bComecaCom) return 1;
+        
+        return a.frota.length - b.frota.length || a.frota.localeCompare(b.frota);
+      })
+      .slice(0, 5);
+  }, [equipamento, frotasCadastradas]);
+
+  // 🚜 FILTRO PREDITIVO: Operadores mais próximos
+  const operadoresSugestao = useMemo(() => {
+    const busca = operador.trim().toLowerCase();
+    if (!busca) return operadoresCadastrados.slice(0, 5);
+
+    return operadoresCadastrados
+      .filter(op => op.codigo.toLowerCase().includes(busca))
+      .sort((a, b) => {
+        const aComecaCom = a.codigo.toLowerCase().startsWith(busca);
+        const bComecaCom = b.codigo.toLowerCase().startsWith(busca);
+
+        if (aComecaCom && !bComecaCom) return -1;
+        if (!aComecaCom && bComecaCom) return 1;
+
+        return a.codigo.length - b.codigo.length || a.codigo.localeCompare(b.codigo);
+      })
+      .slice(0, 5);
+  }, [operador, operadoresCadastrados]);
 
   // Processamento do Multi-filtro Acumulativo Real
   const dadosFiltrados = useMemo(() => {
@@ -126,14 +164,11 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-equipamentos-db">
-              {frotasCadastradas
-                .slice(0, 5) 
-                .map(frota => (
-                  <option key={frota.prefixo} value={frota.prefixo}>
-                    {frota.modeloEquipamento} ({frota.usinaAlocada})
-                  </option>
-                ))
-              }
+              {frotasSugestao.map(equip => (
+                <option key={equip.frota} value={equip.frota}>
+                  {equip.modelo}
+                </option>
+              ))}
             </datalist>
           </div>
 
@@ -148,12 +183,9 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-operadores-db">
-              {operadoresCadastrados
-                .slice(0, 5) 
-                .map(op => (
-                  <option key={op.codigo} value={op.codigo}>{op.nome}</option>
-                ))
-              }
+              {operadoresSugestao.map(op => (
+                <option key={op.codigo} value={op.codigo}>{op.nome}</option>
+              ))}
             </datalist>
           </div>
         </div>
@@ -241,7 +273,6 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                   <div>
                     <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
                     <span className="font-bold text-xs text-white">{os.idCustomizado}</span>
-                    {/* ALTERADO AQUI: Data formatada para Mobile */}
                     <span className="text-[10px] text-slate-400 block mt-0.5">{formatarDataBR(os.dataCriacao)} às {os.horaCriacao}</span>
                   </div>
                   <div className="text-right">
@@ -309,7 +340,6 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                   <tr key={os.idCustomizado} className="transition text-[11px] hover:bg-agro-card/40">
                     <td className="p-3 whitespace-nowrap">
                       <div className="font-bold text-[11px] text-white">{os.idCustomizado}</div>
-                      {/* ALTERADO AQUI: Data formatada para Desktop */}
                       <div className="text-[10px] text-slate-500 mt-0.5">{formatarDataBR(os.dataCriacao)} - {os.horaCriacao}</div>
                     </td>
                     <td className="p-3 font-bold text-amber-500 whitespace-nowrap">
