@@ -37,9 +37,11 @@ model OrdemServico {
   dataCriacao        String   // YYYY-MM-DD
   horaCriacao        String   // HH:MM
   atualizadoEm       DateTime @updatedAt
-
   prefixoTrator      String
   idOperador         String
+  dataInicioManutencao DateTime?
+  dataFimManutencao DateTime?
+  tempoManutencao String?
 
   // Relações no MongoDB usando as chaves declaradas acima
   equipamento Equipamento @relation(fields: [prefixoTrator], references: [frota])

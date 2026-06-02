@@ -15,7 +15,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
 
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
 
-  const cidadesZilor = ['Salto Botelho', 'Quatá', 'Barra Grande', 'Lençóis Paulista'];
+  const cidadesZilor = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
   const SetoresZilor: OrdemServicoAgro['triagemSetor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
   const equipamentosZilor = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
   const criadoresOsZilor = ["Coa", "Jonatas", "Everton", "Marcelo"];
