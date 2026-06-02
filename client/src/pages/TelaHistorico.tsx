@@ -1,7 +1,20 @@
-import { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Calendar, SlidersHorizontal, Sliders, Truck, User, Building, FileText } from 'lucide-react';
+import { 
+  Calendar, 
+  SlidersHorizontal, 
+  Sliders, 
+  Truck, 
+  User, 
+  Building, 
+  FileText, 
+  ChevronDown, 
+  ChevronUp, 
+  Clock, 
+  ShieldAlert 
+} from 'lucide-react';
 import { useDadosMestre } from '../hook/useDadosMestre.js';
+import { useHistoricoFiltrado } from '../hook/useHistoricoFiltrado.js';
 import type { OrdemServicoAgro } from '../interface/index.js';
 import { formatarDataBR } from '../utils/date.js';
 
@@ -10,20 +23,23 @@ interface TelaHistoricoProps {
 }
 
 export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
-  // Estados dos Filtros Avançados
-  const [dataInicio, setDataInicio] = useState('');
-  const [dataFim, setDataFim] = useState('');
-  const [setor, setSetor] = useState<string>('TODOS');
-  const [usina, setUsina] = useState<string>('TODOS');
-  const [equipamento, setEquipamento] = useState('');
-  const [operador, setOperador] = useState('');
+  // 🚀 Consome toda a lógica pesada de estados, filtros e cálculos do nosso hook customizado
+  const {
+    filtros,
+    idExpandido,
+    alternarExpansao,
+    resetarFiltros,
+    dadosFiltrados,
+    analiseMetricas,
+    listaUsinas
+  } = useHistoricoFiltrado(ordens);
 
-  // Consome os dados mestre direto do hook isolado
+  // Consome as tabelas mestre para popular as sugestões dos datalists
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
 
-  // 📡 FILTRO PREDITIVO: Equipamentos (Frotas) mais próximos
+  // 📡 FILTRO PREDITIVO: Equipamentos (Frotas) mais próximos baseados no input
   const frotasSugestao = useMemo(() => {
-    const busca = equipamento.trim().toLowerCase();
+    const busca = filtros.equipamento.trim().toLowerCase();
     if (!busca) return frotasCadastradas.slice(0, 5);
 
     return frotasCadastradas
@@ -38,11 +54,11 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
         return a.frota.length - b.frota.length || a.frota.localeCompare(b.frota);
       })
       .slice(0, 5);
-  }, [equipamento, frotasCadastradas]);
+  }, [filtros.equipamento, frotasCadastradas]);
 
-  // 🚜 FILTRO PREDITIVO: Operadores mais próximos
+  // 🚜 FILTRO PREDITIVO: Operadores mais próximos baseados no input
   const operadoresSugestao = useMemo(() => {
-    const busca = operador.trim().toLowerCase();
+    const busca = filtros.operador.trim().toLowerCase();
     if (!busca) return operadoresCadastrados.slice(0, 5);
 
     return operadoresCadastrados
@@ -57,61 +73,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
         return a.codigo.length - b.codigo.length || a.codigo.localeCompare(b.codigo);
       })
       .slice(0, 5);
-  }, [operador, operadoresCadastrados]);
-
-  // Processamento do Multi-filtro Acumulativo Real
-  const dadosFiltrados = useMemo(() => {
-    return ordens.filter(os => {
-      if (dataInicio && os.dataCriacao < dataInicio) return false;
-      if (dataFim && os.dataCriacao > dataFim) return false;
-      if (setor !== 'TODOS' && os.triagemSetor !== setor) return false;
-      if (usina !== 'TODOS' && os.usinaBase !== usina) return false;
-      if (equipamento && !os.prefixoTrator.toLowerCase().includes(equipamento.toLowerCase())) return false;
-      if (operador && !os.idOperador.toLowerCase().includes(operador.toLowerCase())) return false;
-      return true;
-    });
-  }, [ordens, dataInicio, dataFim, setor, usina, equipamento, operador]);
-
-  // Cálculos Estatísticos baseados exatamente na sua interface OrdemServicoAgro
-  const analiseMetricas = useMemo(() => {
-    let hardware = 0;
-    let operacional = 0;
-    let sinal = 0;
-
-    dadosFiltrados.forEach(os => {
-      if (os.status === 'concluido' && os.tipoCausa) {
-        if (os.tipoCausa === 'Hardware (Defeito Real)') hardware++;
-        else if (os.tipoCausa === 'Erro Operacional') operacional++;
-        else if (os.tipoCausa === 'Infraestrutura (Sinal)') sinal++;
-      }
-    });
-
-    const totalConcluidos = hardware + operacional + sinal;
-
-    const dadosPizza = [
-      { name: '🔧 Hardware Real', value: hardware, color: '#22c55e' },
-      { name: '⚠️ Erro Operacional', value: operacional, color: '#f59e0b' },
-      { name: '📡 Falha de Sinal', value: sinal, color: '#3b82f6' }
-    ].filter(d => d.value > 0);
-
-    const dadosPorcentagem = dadosPizza.map(item => ({
-      ...item,
-      porcentagem: totalConcluidos > 0 ? ((item.value / totalConcluidos) * 100).toFixed(1) : '0'
-    }));
-
-    return {
-      dadosGrafico: dadosPorcentagem,
-      totalChamados: dadosFiltrados.length,
-      totalConcluidos,
-      erroOperacionalQtd: operacional,
-      porcentagemOperacional: totalConcluidos > 0 ? ((operacional / totalConcluidos) * 100).toFixed(1) : '0'
-    };
-  }, [dadosFiltrados]);
-
-  const listaUsinas = useMemo(() => {
-    const usinas = new Set(ordens.map(o => o.usinaBase).filter(Boolean));
-    return ['TODOS', ...Array.from(usinas)];
-  }, [ordens]);
+  }, [filtros.operador, operadoresCadastrados]);
 
   return (
     <div className="space-y-6 text-xs antialiased text-slate-200">
@@ -124,18 +86,38 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 items-end">
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Calendar size={10}/> Data Inicial</label>
-            <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition shadow-inner" />
+            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+              <Calendar size={10}/> Data Inicial
+            </label>
+            <input 
+              type="date" 
+              value={filtros.dataInicio} 
+              onChange={e => filtros.setDataInicio(e.target.value)} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition shadow-inner" 
+            />
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Calendar size={10}/> Data Final</label>
-            <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition shadow-inner" />
+            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+              <Calendar size={10}/> Data Final
+            </label>
+            <input 
+              type="date" 
+              value={filtros.dataFim} 
+              onChange={e => filtros.setDataFim(e.target.value)} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition shadow-inner" 
+            />
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><SlidersHorizontal size={10}/> Filtrar Setor</label>
-            <select value={setor} onChange={e => setSetor(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition">
+            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+              <SlidersHorizontal size={10}/> Filtrar Setor
+            </label>
+            <select 
+              value={filtros.setor} 
+              onChange={e => filtros.setSetor(e.target.value)} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition"
+            >
               <option value="TODOS">⚡ TODOS OS SETORES</option>
               <option value="Agricultura de Precisão">📡 Agricultura de Precisão</option>
               <option value="Elétrica">⚡ Elétrica</option>
@@ -145,8 +127,14 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Building size={10}/> Filtrar Usina</label>
-            <select value={usina} onChange={e => setUsina(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition">
+            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+              <Building size={10}/> Filtrar Usina
+            </label>
+            <select 
+              value={filtros.usina} 
+              onChange={e => filtros.setUsina(e.target.value)} 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition"
+            >
               {listaUsinas.map(u => (
                 <option key={u} value={u}>{u === 'TODOS' ? '🏭 TODAS AS USINAS' : `🏭 ${u}`}</option>
               ))}
@@ -154,32 +142,34 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><Truck size={10}/> Equipamento</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+              <Truck size={10}/> Equipamento
+            </label>
             <input 
               type="text" 
               list="lista-equipamentos-db"
               placeholder="Ex: 8500" 
-              value={equipamento} 
-              onChange={e => setEquipamento(e.target.value)} 
+              value={filtros.equipamento} 
+              onChange={e => filtros.setEquipamento(e.target.value)} 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-equipamentos-db">
               {frotasSugestao.map(equip => (
-                <option key={equip.frota} value={equip.frota}>
-                  {equip.modelo}
-                </option>
+                <option key={equip.frota} value={equip.frota}>{equip.modelo}</option>
               ))}
             </datalist>
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1"><User size={10}/> Operador</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center gap-1">
+              <User size={10}/> Operador
+            </label>
             <input 
               type="text" 
               list="lista-operadores-db"
               placeholder="Ex: 23805" 
-              value={operador} 
-              onChange={e => setOperador(e.target.value)} 
+              value={filtros.operador} 
+              onChange={e => filtros.setOperador(e.target.value)} 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-amber-500/50 transition" 
             />
             <datalist id="lista-operadores-db">
@@ -192,23 +182,22 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
 
         <div className="mt-4 flex justify-end">
           <button 
-            onClick={() => { setDataInicio(''); setDataFim(''); setSetor('TODOS'); setUsina('TODOS'); setEquipamento(''); setOperador(''); }}
+            onClick={resetarFiltros} 
             className="bg-agro-card hover:bg-agro-border border border-agro-border text-slate-300 font-bold px-4 py-2 rounded-xl transition cursor-pointer"
           >
             Resetar Filtros
           </button>
         </div>
       </section>
-      
       {/* SEÇÃO DE MÉTRICAS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
-          <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 transition-colors duration-200 shadow-md">
+          <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 shadow-md">
             <span className="text-[10px] font-bold uppercase text-slate-400 tracking-wider">Total O.S. Filtradas</span>
             <span className="text-3xl font-black mt-1 text-white">{analiseMetricas.totalChamados}</span>
           </div>
 
-          <div className="bg-[#181b26] border border-amber-500/20 p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 transition-colors duration-200 shadow-md">
+          <div className="bg-[#181b26] border border-amber-500/20 p-5 rounded-2xl flex flex-col justify-center h-full min-h-23.75 shadow-md">
             <span className="text-[10px] font-bold uppercase text-amber-500 tracking-wider">Índice Erro Operacional</span>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-3xl font-black text-amber-400">{analiseMetricas.porcentagemOperacional}%</span>
@@ -221,7 +210,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
         </div>
 
         {/* GRÁFICO RECHARTS */}
-        <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl lg:col-span-2 flex flex-col justify-between min-h-50 transition-colors duration-200 shadow-md">
+        <div className="bg-[#181b26] border border-agro-border p-5 rounded-2xl lg:col-span-2 flex flex-col justify-between min-h-50 shadow-md">
           <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-4">Impacto Percentual por Tipo de Causa (O.S. Concluídas)</h4>
           
           {analiseMetricas.totalConcluidos > 0 ? (
@@ -267,55 +256,92 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
         {/* LAYOUT MOBILE */}
         <div className="block md:hidden divide-y divide-agro-border/60 bg-[#151822]">
           {dadosFiltrados.length > 0 ? (
-            dadosFiltrados.map(os => (
-              <div key={os.idCustomizado} className="p-4 space-y-3 transition hover:bg-agro-card/30">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
-                    <span className="font-bold text-xs text-white">{os.idCustomizado}</span>
-                    <span className="text-[10px] text-slate-400 block mt-0.5">{formatarDataBR(os.dataCriacao)} às {os.horaCriacao}</span>
+            dadosFiltrados.map(os => {
+              const estaAberto = idExpandido === os.idCustomizado;
+              return (
+                <div 
+                  key={os.idCustomizado} 
+                  onClick={() => alternarExpansao(os.idCustomizado)}
+                  className={`p-4 space-y-3 transition cursor-pointer ${estaAberto ? 'bg-agro-card/40' : 'hover:bg-agro-card/20'}`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-xs text-white">{os.idCustomizado}</span>
+                        {estaAberto ? <ChevronUp size={12} className="text-amber-500" /> : <ChevronDown size={12} className="text-slate-400" />}
+                      </div>
+                      <span className="text-[10px] text-slate-400 block mt-0.5">{formatarDataBR(os.dataCriacao)} às {os.horaCriacao}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] font-bold text-slate-500 block uppercase">Equipamento</span>
+                      <span className="font-bold text-amber-500 text-xs block">🚜 {os.prefixoTrator}</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-[10px] font-bold text-slate-500 block uppercase">Equipamento</span>
-                    <span className="font-bold text-amber-500 text-xs block">🚜 {os.prefixoTrator}</span>
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Usina</span>
-                    <span className="font-medium truncate block text-slate-300">{os.usinaBase || 'Geral'}</span>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 block uppercase">Usina</span>
+                      <span className="font-medium truncate block text-slate-300">{os.usinaBase || 'Geral'}</span>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-bold text-slate-500 block uppercase">Setor Responsável</span>
+                      <span className="font-medium truncate block text-slate-300">{os.triagemSetor}</span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Setor Responsável</span>
-                    <span className="font-medium truncate block text-slate-300">{os.triagemSetor}</span>
-                  </div>
-                </div>
 
-                <div className="p-2.5 rounded-xl border space-y-1.5 bg-agro-dark/60 border-agro-border/40">
-                  <div>
-                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Causa Real</span>
-                    <span className={`font-bold text-[11px] ${
-                      os.status !== 'concluido' 
-                        ? 'text-slate-500' 
-                        : os.tipoCausa === 'Hardware (Defeito Real)' 
-                        ? 'text-emerald-400' 
-                        : os.tipoCausa === 'Erro Operacional' 
-                        ? 'text-amber-400' 
-                        : 'text-blue-400'
-                    }`}>
-                      {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
-                    </span>
-                  </div>
-                  <div className="border-t pt-1.5 border-agro-border/30">
-                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Histórico Técnico</span>
-                    <p className="text-slate-400 italic text-[11px] wrap-break-word line-clamp-3">
-                      {os.solucaoTecnico || os.qruDescricao || 'Sem descrição registrada.'}
-                    </p>
-                  </div>
+                  {/* Detalhes do Mobile Expandido */}
+                  {estaAberto && (
+                    <div className="p-3 rounded-xl border space-y-2.5 bg-agro-dark/80 border-agro-border/50 text-[11px] text-slate-300 border-t border-dashed mt-2">
+                      <div className="grid grid-cols-2 gap-2 border-b border-agro-border/30 pb-2">
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><User size={9}/> Operador</span>
+                          <span className="text-slate-300 font-medium">{os.idOperador}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><ShieldAlert size={9}/> Aberto Por</span>
+                          <span className="text-slate-300 font-medium">{os.criadoPor || 'Zilor'}</span>
+                        </div>
+                      </div>
+
+                      {os.tempoManutencao && (
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold border-b border-agro-border/30 pb-2">
+                          <Clock size={12}/>
+                          <span>Tempo total de Reparo: {os.tempoManutencao}</span>
+                        </div>
+                      )}
+
+                      <div>
+                        <span className="text-[9px] font-bold text-slate-500 block uppercase">Causa Real</span>
+                        <span className={`font-bold text-[11px] ${
+                          os.status !== 'concluido' 
+                            ? 'text-slate-500' 
+                            : os.tipoCausa === 'Hardware (Defeito Real)' 
+                            ? 'text-emerald-400' 
+                            : os.tipoCausa === 'Erro Operacional' 
+                            ? 'text-amber-400' 
+                            : 'text-blue-400'
+                        }`}>
+                          {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
+                        </span>
+                      </div>
+                      
+                      <div className="border-t pt-2 border-agro-border/30">
+                        <span className="text-[9px] font-bold text-slate-500 block uppercase">Problema Informado (QRU)</span>
+                        <p className="text-slate-400 italic">"{os.qruDescricao || 'Sem descrição registrada.'}"</p>
+                      </div>
+
+                      {os.solucaoTecnico && (
+                        <div className="border-t pt-2 border-agro-border/30">
+                          <span className="text-[9px] font-bold text-slate-400 block uppercase">Ação Corretiva do Técnico</span>
+                          <p className="text-emerald-400 font-medium font-mono bg-emerald-950/20 p-2 rounded-lg border border-emerald-500/10">{os.solucaoTecnico}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="p-8 text-center text-slate-500 italic">Nenhum registro encontrado.</div>
           )}
@@ -336,41 +362,96 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             </thead>
             <tbody className="divide-y divide-agro-border/40 text-slate-300">
               {dadosFiltrados.length > 0 ? (
-                dadosFiltrados.map(os => (
-                  <tr key={os.idCustomizado} className="transition text-[11px] hover:bg-agro-card/40">
-                    <td className="p-3 whitespace-nowrap">
-                      <div className="font-bold text-[11px] text-white">{os.idCustomizado}</div>
-                      <div className="text-[10px] text-slate-500 mt-0.5">{formatarDataBR(os.dataCriacao)} - {os.horaCriacao}</div>
-                    </td>
-                    <td className="p-3 font-bold text-amber-500 whitespace-nowrap">
-                      🚜 {os.prefixoTrator}
-                    </td>
-                    <td className="p-3 truncate" title={os.usinaBase || 'Geral'}>
-                      {os.usinaBase || 'Geral'}
-                    </td>
-                    <td className="p-3">
-                      <span className="border px-2 py-0.5 rounded block text-center truncate bg-agro-dark border-agro-border text-slate-400 font-medium" title={os.triagemSetor}>
-                        {os.triagemSetor}
-                      </span>
-                    </td>
-                    <td className="p-3 truncate">
-                      <span className={`font-bold ${
-                        os.status !== 'concluido' 
-                          ? 'text-slate-500' 
-                          : os.tipoCausa === 'Hardware (Defeito Real)' 
-                          ? 'text-emerald-400' 
-                          : os.tipoCausa === 'Erro Operacional' 
-                          ? 'text-amber-400' 
-                          : 'text-blue-400'
-                      }`}>
-                        {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
-                      </span>
-                    </td>
-                    <td className="p-3 truncate" title={os.solucaoTecnico || os.qruDescricao || 'Sem descrição.'}>
-                      {os.solucaoTecnico || os.qruDescricao || 'Sem descrição registrada.'}
-                    </td>
-                  </tr>
-                ))
+                dadosFiltrados.map(os => {
+                  const estaAberto = idExpandido === os.idCustomizado;
+                  return (
+                    <React.Fragment key={os.idCustomizado}>
+                      {/* Linha Principal clicável */}
+                      <tr 
+                        onClick={() => alternarExpansao(os.idCustomizado)}
+                        className={`transition text-[11px] cursor-pointer ${estaAberto ? 'bg-agro-card/50' : 'hover:bg-agro-card/30'}`}
+                      >
+                        <td className="p-3 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 font-bold text-[11px] text-white">
+                            {estaAberto ? <ChevronUp size={12} className="text-amber-500 shrink-0"/> : <ChevronDown size={12} className="text-slate-500 shrink-0"/>}
+                            {os.idCustomizado}
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5 ml-3.5">{formatarDataBR(os.dataCriacao)} - {os.horaCriacao}</div>
+                        </td>
+                        <td className="p-3 font-bold text-amber-500 whitespace-nowrap">
+                          🚜 {os.prefixoTrator}
+                        </td>
+                        <td className="p-3 truncate" title={os.usinaBase || 'Geral'}>
+                          {os.usinaBase || 'Geral'}
+                        </td>
+                        <td className="p-3">
+                          <span className="border px-2 py-0.5 rounded block text-center truncate bg-agro-dark border-agro-border text-slate-400 font-medium" title={os.triagemSetor}>
+                            {os.triagemSetor}
+                          </span>
+                        </td>
+                        <td className="p-3 truncate">
+                          <span className={`font-bold ${
+                            os.status !== 'concluido' 
+                              ? 'text-slate-500' 
+                              : os.tipoCausa === 'Hardware (Defeito Real)' 
+                              ? 'text-emerald-400' 
+                              : os.tipoCausa === 'Erro Operacional' 
+                              ? 'text-amber-400' 
+                              : 'text-blue-400'
+                          }`}>
+                            {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
+                          </span>
+                        </td>
+                        <td className="p-3 truncate italic text-slate-400" title={os.solucaoTecnico || os.qruDescricao || 'Sem descrição.'}>
+                          {os.solucaoTecnico ? `Ação: ${os.solucaoTecnico}` : `QRU: ${os.qruDescricao}`}
+                        </td>
+                      </tr>
+
+                      {/* Linha Subterrânea Expandida */}
+                      {estaAberto && (
+                        <tr className="bg-agro-dark/60 border-t-0">
+                          <td colSpan={6} className="p-4 border-l-2 border-amber-500 bg-agro-dark/20">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-[11px] text-slate-300 leading-relaxed">
+                              
+                              {/* Painel Relacional Esquerdo */}
+                              <div className="space-y-2 border-r border-agro-border/30 pr-4">
+                                <h5 className="font-bold text-[10px] uppercase text-slate-500 tracking-wider">Metadados de Log</h5>
+                                <div className="flex items-center gap-2"><User size={12} className="text-slate-500"/> <span><strong>Operador:</strong> {os.idOperador}</span></div>
+                                <div className="flex items-center gap-2"><ShieldAlert size={12} className="text-slate-500"/> <span><strong>Identificado por:</strong> {os.criadoPor || 'Zilor'}</span></div>
+                                {os.tempoManutencao && (
+                                  <div className="flex items-center gap-2 mt-1 bg-emerald-500/10 text-emerald-400 font-bold p-1.5 rounded-lg border border-emerald-500/20 w-fit">
+                                    <Clock size={12}/> <span>Duração: {os.tempoManutencao}</span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Painel Central: QRU */}
+                              <div className="space-y-1">
+                                <h5 className="font-bold text-[10px] uppercase text-amber-500 tracking-wider">Descrição do Problema (QRU)</h5>
+                                <p className="text-slate-400 italic bg-agro-dark/40 p-2.5 rounded-xl border border-agro-border/30">
+                                  "{os.qruDescricao || 'Nenhuma observação descrita no chamado inicial.'}"
+                                </p>
+                              </div>
+
+                              {/* Painel Direito: Ação Técnica */}
+                              <div className="space-y-1">
+                                <h5 className="font-bold text-[10px] uppercase text-emerald-400 tracking-wider">Ação Corretiva Realizada</h5>
+                                {os.solucaoTecnico ? (
+                                  <p className="text-slate-200 bg-emerald-950/20 border border-emerald-500/20 p-2.5 rounded-xl font-mono">
+                                    {os.solucaoTecnico}
+                                  </p>
+                                ) : (
+                                  <p className="text-slate-500 italic p-2">Nenhuma solução ou encerramento técnico registrado ainda.</p>
+                                )}
+                              </div>
+
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={6} className="p-8 text-center text-slate-500 italic">Nenhum registro encontrado.</td>

@@ -8,6 +8,9 @@ export interface CreateOrdemInput {
   frente: string;
   qruDescricao: string;
   triagemSetor: string;
+  ataInicioManutencao: string;
+  dataFimManutencao: string;
+  tempoManutencao: string;
 }
 
 export interface UpdateOrdemInput {

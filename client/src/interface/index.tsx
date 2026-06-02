@@ -28,6 +28,9 @@ export interface OrdemServicoAgro {
   usinaBase?: string;
   frente?: string;
   atualizadoEm?: string;
+  dataInicioManutencao?: string;
+  dataFimManutencao?: string;
+  tempoManutencao?: string;
 }
 
 export interface TelaHistoricoProps {

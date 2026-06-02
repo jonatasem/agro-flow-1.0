@@ -1,6 +1,48 @@
 import type { ColunaKanbanProps } from '../interface/index.js';
-import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, ShieldAlert, Calendar } from 'lucide-react';
-import { formatarDataBR } from '../utils/date.js'; // Importação da função reaproveitável
+import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, ShieldAlert, Calendar, Timer } from 'lucide-react';
+import { formatarDataBR } from '../utils/date.js';
+import { useState, useEffect } from 'react';
+
+// ⏱️ Sub-componente isolado para gerenciar o cronômetro rodando segundo a segundo
+function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
+  const [tempoPassado, setTempoPassado] = useState('00:00:00');
+
+  useEffect(() => {
+    if (!dataInicio) return;
+
+    const calcularDiferenca = () => {
+      const inicio = new Date(dataInicio).getTime();
+      const agora = new Date().getTime();
+      const diferenca = agora - inicio;
+
+      if (diferenca <= 0) {
+        setTempoPassado('00:00:00');
+        return;
+      }
+
+      const totalSegundos = Math.floor(diferenca / 1000);
+      const horas = Math.floor(totalSegundos / 3600);
+      const minutos = Math.floor((totalSegundos % 3600) / 60);
+      const segundos = totalSegundos % 60;
+
+      setTempoPassado(
+        `${String(horas).padStart(2, '0')}:${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`
+      );
+    };
+
+    calcularDiferenca(); // Executa o primeiro cálculo imediatamente
+    const intervalo = setInterval(calcularDiferenca, 1000);
+
+    return () => clearInterval(intervalo);
+  }, [dataInicio]);
+
+  return (
+    <div className="bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 animate-pulse">
+      <Timer size={13} className="text-amber-500" />
+      <span>Manutenção: {tempoPassado}</span>
+    </div>
+  );
+}
 
 export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard, onEditar, onExcluir }: ColunaKanbanProps) {
   const ordensFiltradas = ordens.filter(o => o.status === status);
@@ -37,6 +79,17 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                   #{os.idCustomizado}
                 </span>
               </div>
+
+              {/* 🕒 SESSÃO DINÂMICA DE CRONÔMETRO / TEMPO FINALIZADO */}
+              {os.status === 'em_andamento' && os.dataInicioManutencao && (
+                <CardCronometro dataInicio={os.dataInicioManutencao} />
+              )}
+
+              {os.status === 'concluido' && os.tempoManutencao && (
+                <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit">
+                  ⏱️ Duração total: {os.tempoManutencao}
+                </div>
+              )}
 
               {/* Informações da Operação (Badges Organizados) */}
               <div className="space-y-1.5 text-[11px] text-slate-300">
