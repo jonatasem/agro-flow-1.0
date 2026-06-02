@@ -12,30 +12,30 @@ const prisma = new PrismaClient({
 async function main() {
   console.log('🌱 Apagando dados antigos (Reset)...');
 
-  await prisma.ordemServico.deleteMany({});
+  // await prisma.ordemServico.deleteMany({});
   await prisma.equipamento.deleteMany({});
-  await prisma.operador.deleteMany({});
+  // await prisma.operador.deleteMany({});
 
   console.log('🚜 Cadastrando Equipamentos Mestre...');
   await prisma.equipamento.createMany({
     data: [
       {
-        prefixo: '850002',
-        tipo: 'Trator',
-        modeloEquipamento: 'John Deere 6195M',
-        modeloPilotoPadrao: 'StarFire 6000',
-        usinaAlocada: 'Barra Grande',
-        setor: 'Transbordo',
+        frota: '850002',
+        modelo: 'John Deere 6195M'
       }
     ],
   });
 
-  console.log('👨‍🌾 Cadastrando Operadores Mestre...');
-  await prisma.operador.createMany({
-    data: [
-      { codigo: "1537", nome: "LAUDEMIR BARILE" }
-    ],
-  });
+  /*
+  
+    console.log('👨‍🌾 Cadastrando Operadores Mestre...');
+    await prisma.operador.createMany({
+      data: [
+        { codigo: "1537", nome: "LAUDEMIR BARILE" }
+      ],
+    });
+
+  */
 
   console.log('✅ Banco de dados MongoDB populado com sucesso!');
 }

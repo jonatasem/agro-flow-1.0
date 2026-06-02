@@ -16,14 +16,9 @@ model Operador {
 
 model Equipamento {
   id                 String         @id @default(auto()) @map("_id") @db.ObjectId
-  prefixo            String         @unique // Ex: '850002'
-  tipo               String         // Trator, Colhedora, etc.
-  modeloEquipamento  String         // John Deere 7M, etc.
-  modeloPilotoPadrao String         // Trimble 1060, etc.
-  usinaAlocada       String         // Lençóis Paulista, Quatá, etc.
-  setor              String         // Plantio, Transbordo (CTT), etc.
+  frota            String         @unique // Ex: '850002'
+  modelo  String         // John Deere 7M, etc.
   ordensServico      OrdemServico[]
-  criadoEm           DateTime       @default(now())
 }
 
 model OrdemServico {
