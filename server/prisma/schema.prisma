@@ -42,6 +42,6 @@ model OrdemServico {
   atualizadoEm       DateTime @updatedAt
 
   // Relações no MongoDB usando as chaves declaradas acima
-  equipamento Equipamento @relation(fields: [prefixoTrator], references: [prefixo])
+  equipamento Equipamento @relation(fields: [prefixoTrator], references: [frota])
   operador    Operador    @relation(fields: [idOperador], references: [codigo])
 }
