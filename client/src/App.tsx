@@ -48,8 +48,8 @@ export default function App() {
   const cidadesDisponiveis = [
     'Salto Botelho',
     'Quatá',
-    'Barra Grande',
-    'Lençóis Paulista'
+    'São José',
+    'Barra Grande'
   ];
 
   // Função para carregar as ordens reais do MongoDB Atlas via API

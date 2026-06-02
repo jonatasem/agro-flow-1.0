@@ -12,7 +12,6 @@ model Operador {
   codigo        String         @unique // Ex: '23805'
   nome          String
   ordensServico OrdemServico[]
-  criadoEm      DateTime       @default(now())
 }
 
 model Equipamento {
