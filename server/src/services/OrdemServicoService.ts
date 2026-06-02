@@ -20,8 +20,15 @@ export class OrdemServicoService {
 
   async criar(dados: CreateOrdemInput) {
     const agora = new Date();
-    const dataAtual = `${agora.getFullYear()}-${String(agora.getMonth() + 1).padStart(2, '0')}-${String(agora.getDate()).padStart(2, '0')}`;
-    const horaAtual = `${String(agora.getHours()).padStart(2, '0')}:${String(agora.getMinutes()).padStart(2, '0')}`;
+    
+    // 🔥 FORÇA O HORÁRIO DE BRASÍLIA EM PRODUÇÃO (Evita as 3 horas adiantadas)
+    const dataAtual = agora.toLocaleDateString('en-CA', { timeZone: 'America/Sao_Paulo' }); // Retorna "YYYY-MM-DD"
+    const horaAtual = agora.toLocaleTimeString('pt-BR', { 
+      timeZone: 'America/Sao_Paulo', 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: false 
+    }); // Retorna "HH:MM"
     
     const numeroAleatorio = Math.floor(1000 + Math.random() * 9000);
     const idCustomizado = `OS-${dados.prefixoTrator}-${numeroAleatorio}`;
@@ -46,7 +53,6 @@ export class OrdemServicoService {
   }
 
   async atualizar(idCustomizado: string, dados: UpdateOrdemInput) {
-    // 1. Busca a O.S. atual para saber o status que ela estava antes
     const osAtual = await prisma.ordemServico.findUnique({ where: { idCustomizado } });
     if (!osAtual) throw new Error("Ordem de serviço não encontrada");
 
@@ -55,14 +61,18 @@ export class OrdemServicoService {
 
     // 🏎‍🟀 Cenário A: Movendo de Triagem (pendente) para Em Manutenção (em_andamento)
     if (dados.status === 'em_andamento' && osAtual.status === 'pendente') {
-      novosDados.dataInicioManutencao = agora;
+      novosDados.dataInicioManutencao = agora; // Grava o objeto Date puro (Prisma converte para UTC no MongoDB)
     }
 
     // 🏁 Cenário B: Movendo de Em Manutenção (em_andamento) para Concluído (concluido)
     if (dados.status === 'concluido' && osAtual.status === 'em_andamento') {
       novosDados.dataFimManutencao = agora;
       
+      // Se não houver dataInicioManutencao, usa o atualizadoEm antigo como fallback
       const inicio = osAtual.dataInicioManutencao ? new Date(osAtual.dataInicioManutencao) : osAtual.atualizadoEm;
+      
+      // getTime() pega os milissegundos absolutos baseados na era Unix. 
+      // Como ambos vieram do banco ou do mesmo ponteiro do motor V8, o cálculo passa a ser imutável ao fuso.
       const diferencaMilissegundos = agora.getTime() - inicio.getTime();
       
       if (diferencaMilissegundos > 0) {
@@ -70,7 +80,6 @@ export class OrdemServicoService {
         const horas = Math.floor(totalMinutos / 60);
         const minutos = totalMinutos % 60;
         
-        // Formata um texto amigável para persistir no MongoDB
         novosDados.tempoManutencao = horas > 0 
           ? `${String(horas).padStart(2, '0')}h ${String(minutos).padStart(2, '0')}m`
           : `${String(minutos).padStart(2, '0')}m`;
@@ -84,7 +93,6 @@ export class OrdemServicoService {
       data: novosDados
     });
   }
-
 
   async eliminar(idCustomizado: string) {
     return await prisma.ordemServico.delete({
@@ -100,4 +108,3 @@ export class OrdemServicoService {
     return await prisma.operador.findMany();
   }
 }
-
