@@ -418,6 +418,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                                 <h5 className="font-bold text-[10px] uppercase text-slate-500 tracking-wider">Metadados de Log</h5>
                                 <div className="flex items-center gap-2"><User size={12} className="text-slate-500"/> <span><strong>Operador:</strong> {os.idOperador}</span></div>
                                 <div className="flex items-center gap-2"><ShieldAlert size={12} className="text-slate-500"/> <span><strong>Identificado por:</strong> {os.criadoPor || 'Zilor'}</span></div>
+                                <div className="flex items-center gap-2"><ShieldAlert size={12} className="text-slate-500"/> <span><strong>Resolvido por:</strong> {os.tecnicoResponsavel || 'Zilor'}</span></div>
                                 {os.tempoManutencao && (
                                   <div className="flex items-center gap-2 mt-1 bg-emerald-500/10 text-emerald-400 font-bold p-1.5 rounded-lg border border-emerald-500/20 w-fit">
                                     <Clock size={12}/> <span>Duração: {os.tempoManutencao}</span>

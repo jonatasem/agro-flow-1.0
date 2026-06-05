@@ -1,5 +1,5 @@
 import type { ColunaKanbanProps } from '../interface/index.js';
-import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, ShieldAlert, Calendar, Timer } from 'lucide-react';
+import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, ShieldAlert, Calendar, Timer, Lock } from 'lucide-react';
 import { formatarDataBR } from '../utils/date.js';
 import { useState, useEffect } from 'react';
 
@@ -30,7 +30,7 @@ function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
       );
     };
 
-    calcularDiferenca(); // Executa o primeiro cálculo imediatamente
+    calcularDiferenca();
     const intervalo = setInterval(calcularDiferenca, 1000);
 
     return () => clearInterval(intervalo);
@@ -62,6 +62,7 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
       <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1 scrollbar-thin">
         {ordensFiltradas.map(os => {
           const temSolucao = os.solucaoTecnico && os.solucaoTecnico.trim() !== '';
+          const isConcluido = os.status === 'concluido'; // 🔒 Identifica se a O.S está fechada
 
           return (
             <div 
@@ -85,7 +86,7 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                 <CardCronometro dataInicio={os.dataInicioManutencao} />
               )}
 
-              {os.status === 'concluido' && os.tempoManutencao && (
+              {isConcluido && os.tempoManutencao && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit">
                   ⏱️ Duração total: {os.tempoManutencao}
                 </div>
@@ -143,19 +144,30 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                   Por: {os.criadoPor || 'Zilor'}
                 </span>
                 
+                {/* 🔒 Seletor Condicional de Ações */}
                 <div className="flex items-center gap-3 shrink-0">
-                  <button 
-                    onClick={(e) => onEditar(os, e)} 
-                    className="text-blue-400 hover:text-blue-300 flex items-center gap-0.5 text-[10px] font-bold cursor-pointer transition"
-                  >
-                    <Edit3 size={11}/> Editar
-                  </button>
-                  <button 
-                    onClick={(e) => onExcluir(os.idCustomizado, e)} 
-                    className="text-red-400 hover:text-red-300 flex items-center gap-0.5 text-[10px] font-bold cursor-pointer transition"
-                  >
-                    <Trash2 size={11}/> Excluir
-                  </button>
+                  {isConcluido ? (
+                    // Exibe aviso visual de registro arquivado/trancado
+                    <div className="text-slate-500 flex items-center gap-1 text-[10px] font-bold select-none bg-agro-dark border border-agro-border px-2 py-0.5 rounded-md">
+                      <Lock size={10} className="text-slate-600" /> Histórico Trancado
+                    </div>
+                  ) : (
+                    // Exibe ações normais apenas se a OS não estiver concluída
+                    <>
+                      <button 
+                        onClick={(e) => onEditar(os, e)} 
+                        className="text-blue-400 hover:text-blue-300 flex items-center gap-0.5 text-[10px] font-bold cursor-pointer transition"
+                      >
+                        <Edit3 size={11}/> Editar
+                      </button>
+                      <button 
+                        onClick={(e) => onExcluir(os.idCustomizado, e)} 
+                        className="text-red-400 hover:text-red-300 flex items-center gap-0.5 text-[10px] font-bold cursor-pointer transition"
+                      >
+                        <Trash2 size={11}/> Excluir
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 

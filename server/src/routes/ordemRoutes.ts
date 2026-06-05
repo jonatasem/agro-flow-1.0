@@ -1,15 +1,21 @@
 import { Router } from 'express';
 import { OrdemServicoController } from '../controllers/OrdemServicoController.js';
+import { autenticarToken } from '../middlewares/authMiddleware.js';
 
 const router = Router();
 const controller = new OrdemServicoController();
 
-router.get('/ordens', controller.getOrdens);
-router.post('/ordens', controller.createOrdem);
-router.put('/ordens/:id', controller.updateOrdem);
-router.delete('/ordens/:id', controller.deleteOrdem);
+// 🔓 ROTAS PÚBLICAS (Sem o prefixo repetido do /api)
+router.post('/autorizados', controller.loginAutorizados);
+router.post('/autorizados/cadastro', controller.cadastrarAutorizado);
 
-router.get('/frotas-mestre', controller.getFrotasCadastro);
-router.get('/operadores-mestre', controller.getOperadoresCadastro);
+// 🔒 ROTAS PROTEGIDAS (Exigem o Token JWT gerado no login)
+router.get('/ordens', autenticarToken, controller.getOrdens);
+router.post('/ordens', autenticarToken, controller.createOrdem);
+router.put('/ordens/:id', autenticarToken, controller.updateOrdem);
+router.delete('/ordens/:id', autenticarToken, controller.deleteOrdem);
+
+router.get('/frotas-mestre', autenticarToken, controller.getFrotasCadastro);
+router.get('/operadores-mestre', autenticarToken, controller.getOperadoresCadastro);
 
 export default router;

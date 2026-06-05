@@ -10,11 +10,10 @@ const PORT = process.env.PORT || 3333;
 
 app.use(cors({
   origin: process.env.URL_FRONT_END,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos HTTP permitidos
-  allowedHeaders: ['Content-Type', 'Authorization'] // Headers permitidos
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Permite que o Express compreenda payloads enviados em formato JSON
 app.use(express.json());
 
 app.use('/api', ordemRoutes);

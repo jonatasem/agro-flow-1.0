@@ -7,6 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model ColaboradorAutorizado {
+  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  matricula String @unique // A matrícula dele para fazer login (Ex: '23805')
+  nome   String // Nome de quem acessa o painel (Ex: 'Jonatas Elieser Moreira')
+}
+
 model Operador {
   id            String         @id @default(auto()) @map("_id") @db.ObjectId
   codigo        String         @unique // Ex: '23805'

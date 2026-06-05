@@ -10,32 +10,14 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  console.log('🌱 Apagando dados antigos (Reset)...');
-
-  // await prisma.ordemServico.deleteMany({});
-  await prisma.equipamento.deleteMany({});
-  // await prisma.operador.deleteMany({});
-
-  console.log('🚜 Cadastrando Equipamentos Mestre...');
-  await prisma.equipamento.createMany({
-    data: [
-      {
-        frota: '850002',
-        modelo: 'John Deere 6195M'
+  console.log('🚜 Cadastrando Funcionários Autorizados...');
+  await prisma.colaboradorAutorizado.create({
+    data: 
+      { 
+        matricula: '23805', 
+        nome: 'Jonatas Elieser Moreira' 
       }
-    ],
   });
-
-  /*
-  
-    console.log('👨‍🌾 Cadastrando Operadores Mestre...');
-    await prisma.operador.createMany({
-      data: [
-        { codigo: "1537", nome: "LAUDEMIR BARILE" }
-      ],
-    });
-
-  */
 
   console.log('✅ Banco de dados MongoDB populado com sucesso!');
 }

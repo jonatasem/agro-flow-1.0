@@ -1,9 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useDadosMestre } from '../hook/useDadosMestre.js';
 import { useSubmit } from '../hook/useSubmit.js';
+import { useAuth } from '../context/AuthContext.js'; // 🔓 Importando o contexto do usuário logado
 import type { FormularioOSProps, OrdemServicoAgro } from '../interface/index.js';
 
 export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar }: FormularioOSProps) {
+  const { usuario } = useAuth(); // 👈 Pegando o colaborador autenticado no painel
+
   const [prefixo, setPrefixo] = useState('');
   const [operador, setOperador] = useState('');
   const [criador, setCriador] = useState('');
@@ -15,15 +18,32 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [setorSelecionado, setSetorSelecionado] = useState<OrdemServicoAgro['triagemSetor'] | ''>('');
 
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
-  
-  // Instanciando o hook de controle de cliques duplo
   const { isSubmitting, handleSubmit } = useSubmit();
 
   const cidadesZilor = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
   const SetoresZilor: OrdemServicoAgro['triagemSetor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
   const equipamentosZilor = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
-  const criadoresOsZilor = ["Coa", "Jonatas", "Everton", "Marcelo"];
   const frentesZilor = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
+
+  // 📝 Gerencia o preenchimento automático baseado no fluxo (Nova OS vs Edição)
+  useEffect(() => {
+    if (idEmEdicao) {
+      const os = ordens.find(o => o.idCustomizado === idEmEdicao);
+      if (os) {
+        setPrefixo(os.prefixoTrator || '');
+        setOperador(os.idOperador || '');
+        setCriador(os.criadoPor || '');
+        setFrente(os.frente || '');
+        setAtividade(os.atividade || '');
+        setQru(os.qruDescricao || '');
+        setUsinaSelecionada(os.usinaBase || '');
+        setSetorSelecionado(os.triagemSetor || '');
+      }
+    } else if (usuario) {
+      // Se for uma nova O.S., preenche automaticamente com a identificação do logado
+      setCriador(`${usuario.matricula} - ${usuario.nome}`);
+    }
+  }, [idEmEdicao, ordens, usuario]);
 
   const frotasSugestao = useMemo(() => {
     const busca = prefixo.trim().toLowerCase();
@@ -57,34 +77,16 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       .slice(0, 5);
   }, [operador, operadoresCadastrados]);
 
-  useEffect(() => {
-    if (idEmEdicao) {
-      const os = ordens.find(o => o.idCustomizado === idEmEdicao);
-      if (os) {
-        setPrefixo(os.prefixoTrator || '');
-        setOperador(os.idOperador || '');
-        setCriador(os.criadoPor || '');
-        setFrente(os.frente || '');
-        setAtividade(os.atividade || '');
-        setQru(os.qruDescricao || '');
-        setUsinaSelecionada(os.usinaBase || '');
-        setSetorSelecionado(os.triagemSetor || '');
-      }
-    }
-  }, [idEmEdicao, ordens]);
-
-  // Envelopando a função de envio antiga dentro do handleSubmit do hook
   const onSubmitForm = handleSubmit(async () => {
-    const cidadeFinal = usinaSelecionada || 'Geral Zilor';
+    const cityFinal = usinaSelecionada || 'Geral Zilor';
     
-    // O ideal é que a prop 'onSalvar' seja uma Promise (async/await no componente pai)
     await onSalvar({
       prefixoTrator: prefixo.trim(),
       idOperador: operador.trim(),
       criadoPor: criador.trim(),
       frente: frente.trim(),
       atividade: atividade.trim(),
-      usinaBase: cidadeFinal,
+      usinaBase: cityFinal,
       triagemSetor: setorSelecionado as OrdemServicoAgro['triagemSetor'],
       qruDescricao: qru.trim()
     });
@@ -108,7 +110,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               value={prefixo} 
               onChange={e => setPrefixo(e.target.value)} 
               placeholder="Digite ou selecione a frota..." 
-              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold" 
             />
             <datalist id="lista-frotas-db">
               {frotasSugestao.map(equip => (
@@ -120,7 +122,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Código do Operador *</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Código do Operador / Motorista *</label>
             <input 
               type="text" 
               required 
@@ -128,7 +130,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               value={operador} 
               onChange={e => setOperador(e.target.value)} 
               placeholder="Digite ou selecione o operador..." 
-              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold" 
             />
             <datalist id="lista-operadores-db">
               {operadoresSugestao.map(op => (
@@ -141,22 +143,16 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* 🔥 Campo Criador automatizado e protegido de fraudes */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
+            <label className="text-[10px] font-bold text-green-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
             <input 
               type="text" 
               required 
-              list="lista-criadores-db"
+              readOnly // 🔒 Impede edição manual
               value={criador} 
-              onChange={e => setCriador(e.target.value)} 
-              placeholder="Ex: COA - Central" 
-              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
+              className="w-full bg-agro-dark/60 border border-agro-border rounded-xl p-2.5 text-slate-400 outline-none select-none font-semibold cursor-not-allowed border-dashed" 
             />
-            <datalist id="lista-criadores-db">
-              {criadoresOsZilor.map(c => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
           </div>
           
           <div>
@@ -230,7 +226,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
 
         <div>
           <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
-          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50" />
+          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50 text-sm" />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
