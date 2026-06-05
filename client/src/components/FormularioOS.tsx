@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useDadosMestre } from '../hook/useDadosMestre.js';
+import { useSubmit } from '../hook/useSubmit.js';
 import type { FormularioOSProps, OrdemServicoAgro } from '../interface/index.js';
 
 export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar }: FormularioOSProps) {
@@ -14,6 +15,9 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [setorSelecionado, setSetorSelecionado] = useState<OrdemServicoAgro['triagemSetor'] | ''>('');
 
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
+  
+  // Instanciando o hook de controle de cliques duplo
+  const { isSubmitting, handleSubmit } = useSubmit();
 
   const cidadesZilor = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
   const SetoresZilor: OrdemServicoAgro['triagemSetor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
@@ -69,11 +73,12 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
     }
   }, [idEmEdicao, ordens]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Envelopando a função de envio antiga dentro do handleSubmit do hook
+  const onSubmitForm = handleSubmit(async () => {
     const cidadeFinal = usinaSelecionada || 'Geral Zilor';
     
-    onSalvar({
+    // O ideal é que a prop 'onSalvar' seja uma Promise (async/await no componente pai)
+    await onSalvar({
       prefixoTrator: prefixo.trim(),
       idOperador: operador.trim(),
       criadoPor: criador.trim(),
@@ -83,7 +88,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       triagemSetor: setorSelecionado as OrdemServicoAgro['triagemSetor'],
       qruDescricao: qru.trim()
     });
-  };
+  });
 
   return (
     <section className="max-w-2xl mx-auto bg-[#181b26] border border-agro-border rounded-2xl p-6 shadow-xl text-xs">
@@ -92,7 +97,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       </h2>
       <p className="text-slate-400 mb-6">Insira os dados do equipamento ativo para sincronia no MongoDB.</p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={onSubmitForm} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Frota do Equipamento *</label>
@@ -229,11 +234,31 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onCancelar} className="bg-agro-card hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">
+          <button 
+            type="button" 
+            onClick={onCancelar} 
+            disabled={isSubmitting}
+            className="bg-agro-card hover:bg-agro-border text-slate-300 font-bold px-5 py-2.5 rounded-xl transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             Cancelar
           </button>
-          <button type="submit" className="bg-green-500 hover:bg-green-600 text-slate-950 font-black px-5 py-2.5 rounded-xl transition cursor-pointer flex items-center gap-1">
-            {idEmEdicao ? 'Atualizar O.S.' : 'Salvar O.S.'}
+          
+          <button 
+            type="submit" 
+            disabled={isSubmitting}
+            className={`font-black px-5 py-2.5 rounded-xl transition flex items-center gap-1 ${
+              isSubmitting 
+                ? 'bg-slate-600 text-slate-400 cursor-not-allowed opacity-70' 
+                : 'bg-green-500 hover:bg-green-600 text-slate-950 cursor-pointer'
+            }`}
+          >
+            {isSubmitting ? (
+              <>⏳ Salvando...</>
+            ) : idEmEdicao ? (
+              'Atualizar O.S.'
+            ) : (
+              'Salvar O.S.'
+            )}
           </button>
         </div>
       </form>
