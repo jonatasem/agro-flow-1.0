@@ -5,28 +5,36 @@ const ordemService = new OrdemServicoService();
 
 export class OrdemServicoController {
 
-  // 🔥 GRAVA NOVO OPERADOR NO BANCO DE DADOS
+  // GRAVA NOVO FUNCIONÁRIO AUTORIZADO NO BANCO DE DADOS
   async cadastrarAutorizado(req: Request, res: Response) {
     try {
-      const { nome, codigo } = req.body;
+      const { nome, codigo } = req.body; // Mantém o destruct do body vindo do front
       if (!nome || !codigo) {
         return res.status(400).json({ error: 'Os campos nome e codigo são obrigatórios.' });
       }
-      const novoUsuario = await ordemService.salvarAutorizado({ nome, codigo: String(codigo) });
+      
+      // Correção aqui: Envia como 'matricula' para bater com o Schema e o Service
+      const novoUsuario = await ordemService.salvarAutorizado({ 
+        nome: nome.trim(), 
+        matricula: String(codigo).trim() 
+      });
+      
       return res.status(201).json(novoUsuario);
     } catch (error: any) {
       return res.status(400).json({ error: 'Erro ao cadastrar operador autorizado', details: error.message });
     }
   }
   
-  // 🔓 PROCESSA LOGIN E ENTREGA O TOKEN
+  // PROCESSA LOGIN E ENTREGA O TOKEN
   async loginAutorizados(req: Request, res: Response) {
     try {
       const { matricula } = req.body;
       if (!matricula) {
         return res.status(400).json({ error: 'Matrícula é obrigatória para o login.' });
       }
-      const dadosAutenticacao = await ordemService.validarMatricula(String(matricula));
+      
+      // Garante que o service faça a busca usando a string tratada
+      const dadosAutenticacao = await ordemService.validarMatricula(String(matricula).trim());
       return res.status(200).json(dadosAutenticacao);
     } catch (error: any) {
       return res.status(401).json({ error: 'Erro ao autenticar colaborador', details: error.message });
