@@ -10,29 +10,37 @@ export interface Equipamento {
   modelo: string;
 }
 
-export interface OrdemServicoAgro {
-  id: string;
-  idCustomizado: string; 
-  prefixoTrator: string;
-  idOperador: string;
-  criadoPor: string;
-  atividade: string;
+// Sub-documento que representa o estado isolado de cada oficina
+export interface AtendimentoSetor {
+  setor: 'Agricultura de Precisão' | 'Elétrica' | 'Mecânica' | 'Borracharia';
+  status: 'aguardando_manutencao' | 'em_manutencao' | 'concluido';
   qruDescricao: string;
-  status: 'pendente' | 'em_andamento' | 'concluido';
-  triagemSetor: 'Agricultura de Precisão' | 'Elétrica' | 'Mecânica' | 'Borracharia';
-  tipoCausa?: 'Hardware (Defeito Real)' | 'Erro Operacional' | 'Infraestrutura (Sinal)';
-  solucaoTecnico?: string;
-  tecnicoResponsavel?: string;
-  dataCriacao: string; 
+  criadoPor: string;
+  dataCriacao: string;
   horaCriacao: string;
-  usinaBase?: string;
-  frente?: string;
-  atualizadoEm?: string;
   dataInicioManutencao?: string;
-  dataFimManutencao?: string;
   tempoManutencao?: string;
+  solucaoTecnico: string;
+  tipoCausa?: 'Hardware (Defeito Real)' | 'Erro Operacional' | 'Infraestrutura (Sinal)';
+  tecnicoResponsavel?: string;
 }
 
+// Estrutura principal da Ordem de Serviço Agrícola
+export interface OrdemServicoAgro {
+  id: string;
+  idCustomizado: string;
+  prefixoTrator: string;
+  idOperador: string;
+  atividade: string;
+  usinaBase: string;
+  frente: string;
+  dataCriacao: string;
+  horaCriacao: string;
+  atualizadoEm?: string;
+  setorOs: AtendimentoSetor[];
+}
+
+// Props das Telas e Componentes do Ecossistema
 export interface TelaHistoricoProps {
   ordens: OrdemServicoAgro[];
 }
@@ -46,7 +54,8 @@ export interface FormularioOSProps {
 
 export interface ColunaKanbanProps {
   titulo: string;
-  status: OrdemServicoAgro['status'];
+  status: AtendimentoSetor['status'];
+  setorAtivo: string;
   ordens: OrdemServicoAgro[];
   onSelecionarCard: (os: OrdemServicoAgro) => void;
   onEditar: (os: OrdemServicoAgro, e: React.MouseEvent) => void;

@@ -27,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const expiracao = localStorage.getItem('agro_os_exp');
 
     if (tokenSalvo && usuarioSalvo && expiracao) {
+      // Verifica se o tempo atual ainda é menor que o timestamp de expiração salvo
       if (Date.now() < Number(expiracao)) {
         setToken(tokenSalvo);
         setUsuario(JSON.parse(usuarioSalvo));
@@ -48,9 +49,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (matricula: string): Promise<boolean> => {
     try {
       const response = await api.post('/autorizados', { matricula });
-
       const dados = response.data; 
-      const tempoExpiracao = Date.now() + 60 * 60 * 1000;
+      
+      // Ajustado para 8 horas (8 * 60 * 60 * 1000) para alinhar perfeitamente com a validade do JWT do Backend
+      const tempoExpiracao = Date.now() + 8 * 60 * 60 * 1000;
 
       localStorage.setItem('agro_os_token', dados.token);
       localStorage.setItem('agro_os_user', JSON.stringify(dados.usuario));
@@ -60,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsuario(dados.usuario);
       return true;
     } catch (error) {
-      console.error("Erro no login:", error);
+      console.error("Erro no login estratégico Zilor:", error);
       return false;
     }
   };

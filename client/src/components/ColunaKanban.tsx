@@ -1,7 +1,7 @@
 import type { ColunaKanbanProps } from '../interface/index.js';
 import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, ShieldAlert, Calendar, Timer, Lock } from 'lucide-react';
 import { formatarDataBR } from '../utils/date.js';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 // ⏱️ Sub-componente isolado para gerenciar o cronômetro rodando segundo a segundo
 function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
@@ -11,6 +11,7 @@ function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
     if (!dataInicio) return;
 
     const calcularDiferenca = () => {
+      // Cria a data sintonizando o fuso do ISO String vindo do MongoDB
       const inicio = new Date(dataInicio).getTime();
       const agora = new Date().getTime();
       const diferenca = agora - inicio;
@@ -44,8 +45,23 @@ function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
   );
 }
 
-export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard, onEditar, onExcluir }: ColunaKanbanProps) {
-  const ordensFiltradas = ordens.filter(o => o.status === status);
+export default function ColunaKanban({ 
+  titulo, 
+  status, 
+  setorAtivo, // 📡 Recebe qual oficina o monitor do COA está filtrando no momento
+  ordens, 
+  onSelecionarCard, 
+  onEditar, 
+  onExcluir 
+}: ColunaKanbanProps) {
+
+  // 📂 Filtragem Concorrente: Filtra as OSs que possuem o setor ativo e cujo status interno corresponda a esta coluna
+  const ordensFiltradas = useMemo(() => {
+    return ordens.filter(os => {
+      const subAtendimento = os.setorOs.find(s => s.setor === setorAtivo);
+      return subAtendimento ? subAtendimento.status === status : false;
+    });
+  }, [ordens, status, setorAtivo]);
 
   return (
     <div className="bg-[#181b26] p-4 rounded-2xl border border-agro-border/50 flex flex-col min-h-125">
@@ -59,21 +75,24 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
       </h3>
 
       {/* Container de Rolagem dos Cards */}
-      <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1 scrollbar-thin">
+      <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1 custom-scrollbar">
         {ordensFiltradas.map(os => {
-          const temSolucao = os.solucaoTecnico && os.solucaoTecnico.trim() !== '';
-          const isConcluido = os.status === 'concluido'; // 🔒 Identifica se a O.S está fechada
+          // Extrai o sub-atendimento específico do setor sob visualização
+          const oficinaDoCard = os.setorOs.find(s => s.setor === setorAtivo)!;
+          
+          const temSolucao = oficinaDoCard?.solucaoTecnico && oficinaDoCard.solucaoTecnico.trim() !== '';
+          const isConcluido = oficinaDoCard?.status === 'concluido';
 
           return (
             <div 
               key={os.idCustomizado} 
               onClick={() => onSelecionarCard(os)} 
-              className="bg-agro-card border border-agro-border p-4 rounded-xl cursor-pointer hover:border-amber-500/40 transition-all duration-200 group relative flex flex-col gap-2.5"
+              className="bg-agro-card border border-agro-border p-4 rounded-xl cursor-pointer hover:border-green-500/30 transition-all duration-200 group relative flex flex-col gap-2.5"
             >
               
               {/* Topo do Card: Identificação Visual */}
               <div className="flex justify-between items-center text-[11px]">
-                <span className="font-black text-xs bg-amber-500/10 text-amber-500 px-2 py-0.5 rounded-lg border border-amber-500/20">
+                <span className="font-black text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-lg border border-green-500/20">
                   🚜 Frota {os.prefixoTrator}
                 </span>
                 <span className="text-[10px] text-slate-500 font-mono tracking-tight">
@@ -81,18 +100,18 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                 </span>
               </div>
 
-              {/* 🕒 SESSÃO DINÂMICA DE CRONÔMETRO / TEMPO FINALIZADO */}
-              {os.status === 'em_andamento' && os.dataInicioManutencao && (
-                <CardCronometro dataInicio={os.dataInicioManutencao} />
+              {/* 🕒 SEÇÃO DINÂMICA DE CRONÔMETRO / TEMPO FINALIZADO */}
+              {oficinaDoCard?.status === 'em_manutencao' && oficinaDoCard.dataInicioManutencao && (
+                <CardCronometro dataInicio={oficinaDoCard.dataInicioManutencao} />
               )}
 
-              {isConcluido && os.tempoManutencao && (
+              {isConcluido && oficinaDoCard?.tempoManutencao && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit">
-                  ⏱️ Duração total: {os.tempoManutencao}
+                  ⏱️ Duração em Box: {oficinaDoCard.tempoManutencao}
                 </div>
               )}
 
-              {/* Informações da Operação (Badges Organizados) */}
+              {/* Informações da Operação */}
               <div className="space-y-1.5 text-[11px] text-slate-300">
                 <div className="flex items-center gap-1.5">
                   <ShieldAlert size={12} className="text-slate-500 shrink-0" />
@@ -102,7 +121,7 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                 <div className="grid grid-cols-2 gap-2">
                   <div className="bg-agro-dark/40 border border-agro-border/30 rounded-lg px-2 py-1 flex items-center gap-1 text-slate-300 truncate">
                     <User size={11} className="text-slate-500 shrink-0" />
-                    <span className="truncate">Operador: {os.idOperador}</span>
+                    <span className="truncate">Op: {os.idOperador}</span>
                   </div>
                   <div className="bg-agro-dark/40 border border-agro-border/30 rounded-lg px-2 py-1 flex items-center gap-1 text-slate-300 truncate">
                     <MapPin size={11} className="text-slate-500 shrink-0" />
@@ -111,57 +130,55 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
                 </div>
               </div>
 
-              {/* Caixa de Texto Central (Descrição ou Solução Técnico) */}
+              {/* Caixa de Texto Central (Exibe o QRU ou a Solução Técnica da Oficina Atual) */}
               <div className="bg-agro-dark/50 p-2.5 rounded-xl border border-agro-border/30 text-[11px] leading-relaxed">
                 {temSolucao ? (
                   <div className="text-emerald-400 font-medium flex items-start gap-1.5">
                     <CheckCircle2 size={13} className="shrink-0 mt-0.5 text-emerald-400" />
-                    <p className="line-clamp-3"><strong>Ação:</strong> {os.solucaoTecnico}</p>
+                    <p className="line-clamp-3"><strong>Laudo:</strong> {oficinaDoCard.solucaoTecnico}</p>
                   </div>
                 ) : (
                   <div className="text-slate-400 italic flex items-start gap-1.5">
                     <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
-                    <p className="line-clamp-3">"{os.qruDescricao}"</p>
+                    <p className="line-clamp-3">"{oficinaDoCard?.qruDescricao || os.setorOs[0]?.qruDescricao}"</p>
                   </div>
                 )}
               </div>
 
-              {/* Bloco de Indicadores de Tempo */}
+              {/* Indicadores de Abertura do Sub-atendimento */}
               <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium border-t border-dashed border-agro-border/40 pt-2">
                 <div className="flex items-center gap-1">
                   <Clock size={11} />
-                  <span>Abertura: <strong className="text-slate-400">{os.horaCriacao}</strong></span>
+                  <span>Chegada: <strong className="text-slate-400">{oficinaDoCard?.horaCriacao || os.horaCriacao}</strong></span>
                 </div>
                 <div className="flex items-center gap-1 justify-end text-right">
                   <Calendar size={11} />
-                  <span>Data: <strong className="text-slate-400">{formatarDataBR(os.dataCriacao)}</strong></span>
+                  <span>Data: <strong className="text-slate-400">{formatarDataBR(oficinaDoCard?.dataCriacao || os.dataCriacao)}</strong></span>
                 </div>
               </div>
 
               {/* Rodapé Dinâmico: Ações e Autoria */}
               <div className="mt-1 pt-2 border-t border-agro-border/40 flex justify-between items-center gap-2 opacity-30 group-hover:opacity-100 transition-opacity duration-200">
                 <span className="text-[10px] text-slate-500 font-medium truncate max-w-[55%]">
-                  Por: {os.criadoPor || 'Zilor'}
+                  Por: {oficinaDoCard?.criadoPor || 'COA'}
                 </span>
                 
-                {/* 🔒 Seletor Condicional de Ações */}
+                {/* 🔒 Gerenciador de Trancamento de Ações */}
                 <div className="flex items-center gap-3 shrink-0">
                   {isConcluido ? (
-                    // Exibe aviso visual de registro arquivado/trancado
                     <div className="text-slate-500 flex items-center gap-1 text-[10px] font-bold select-none bg-agro-dark border border-agro-border px-2 py-0.5 rounded-md">
                       <Lock size={10} className="text-slate-600" /> Histórico Trancado
                     </div>
                   ) : (
-                    // Exibe ações normais apenas se a OS não estiver concluída
                     <>
                       <button 
-                        onClick={(e) => onEditar(os, e)} 
+                        onClick={(e) => { e.stopPropagation(); onEditar(os, e); }} 
                         className="text-blue-400 hover:text-blue-300 flex items-center gap-0.5 text-[10px] font-bold cursor-pointer transition"
                       >
                         <Edit3 size={11}/> Editar
                       </button>
                       <button 
-                        onClick={(e) => onExcluir(os.idCustomizado, e)} 
+                        onClick={(e) => { e.stopPropagation(); onExcluir(os.idCustomizado, e); }} 
                         className="text-red-400 hover:text-red-300 flex items-center gap-0.5 text-[10px] font-bold cursor-pointer transition"
                       >
                         <Trash2 size={11}/> Excluir
@@ -178,3 +195,4 @@ export default function ColunaKanban({ titulo, status, ordens, onSelecionarCard,
     </div>
   );
 }
+

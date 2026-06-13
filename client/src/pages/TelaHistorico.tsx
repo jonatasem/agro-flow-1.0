@@ -286,7 +286,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                     </div>
                     <div>
                       <span className="text-[9px] font-bold text-slate-500 block uppercase">Setor Responsável</span>
-                      <span className="font-medium truncate block text-slate-300">{os.triagemSetor}</span>
+                      <span className="font-medium truncate block text-slate-300">{os.setorOs?.[0]?.setor}</span>
                     </div>
                   </div>
 
@@ -300,41 +300,41 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                         </div>
                         <div>
                           <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><ShieldAlert size={9}/> Aberto Por</span>
-                          <span className="text-slate-300 font-medium">{os.criadoPor || 'Zilor'}</span>
+                          <span className="text-slate-300 font-medium">{os.setorOs?.[0]?.criadoPor || 'Zilor'}</span>
                         </div>
                       </div>
 
-                      {os.tempoManutencao && (
+                      {os.setorOs?.[0]?.tempoManutencao && (
                         <div className="flex items-center gap-1.5 text-emerald-400 font-bold border-b border-agro-border/30 pb-2">
                           <Clock size={12}/>
-                          <span>Tempo total de Reparo: {os.tempoManutencao}</span>
+                          <span>Tempo total de Reparo: {os.setorOs?.[0]?.tempoManutencao}</span>
                         </div>
                       )}
 
                       <div>
                         <span className="text-[9px] font-bold text-slate-500 block uppercase">Causa Real</span>
                         <span className={`font-bold text-[11px] ${
-                          os.status !== 'concluido' 
+                          os.setorOs?.[0].status !== 'concluido' 
                             ? 'text-slate-500' 
-                            : os.tipoCausa === 'Hardware (Defeito Real)' 
+                            : os.setorOs?.[0].tipoCausa === 'Hardware (Defeito Real)' 
                             ? 'text-emerald-400' 
-                            : os.tipoCausa === 'Erro Operacional' 
+                            : os.setorOs?.[0].tipoCausa === 'Erro Operacional' 
                             ? 'text-amber-400' 
                             : 'text-blue-400'
                         }`}>
-                          {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
+                          {os.setorOs?.[0].status !== 'concluido' ? '⚠️ Em aberto' : os.setorOs?.[0].tipoCausa}
                         </span>
                       </div>
                       
                       <div className="border-t pt-2 border-agro-border/30">
                         <span className="text-[9px] font-bold text-slate-500 block uppercase">Problema Informado (QRU)</span>
-                        <p className="text-slate-400 italic">"{os.qruDescricao || 'Sem descrição registrada.'}"</p>
+                        <p className="text-slate-400 italic">"{os.setorOs?.[0].qruDescricao || 'Sem descrição registrada.'}"</p>
                       </div>
 
-                      {os.solucaoTecnico && (
+                      {os.setorOs?.[0].solucaoTecnico && (
                         <div className="border-t pt-2 border-agro-border/30">
                           <span className="text-[9px] font-bold text-slate-400 block uppercase">Ação Corretiva do Técnico</span>
-                          <p className="text-emerald-400 font-medium font-mono bg-emerald-950/20 p-2 rounded-lg border border-emerald-500/10">{os.solucaoTecnico}</p>
+                          <p className="text-emerald-400 font-medium font-mono bg-emerald-950/20 p-2 rounded-lg border border-emerald-500/10">{os.setorOs?.[0].solucaoTecnico}</p>
                         </div>
                       )}
                     </div>
@@ -346,24 +346,24 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
             <div className="p-8 text-center text-slate-500 italic">Nenhum registro encontrado.</div>
           )}
         </div>
-
-        {/* LAYOUT DESKTOP */}
+ {/* LAYOUT DESKTOP */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left table-fixed border-collapse">
             <thead>
-              <tr className="bg-agro-dark text-slate-400 font-extrabold border-b border-agro-border">
+              <tr className="bg-agro-dark text-slate-400 font-extrabold border-b border-agro-border text-[11px] uppercase tracking-wider">
                 <th className="p-3 w-[15%]">Identificação</th>
                 <th className="p-3 w-[12%]">Equipamento</th>
-                <th className="p-3 w-[15%]">Usina</th>
-                <th className="p-3 w-[18%]">Setor Responsável</th>
-                <th className="p-3 w-[18%]">Causa Real</th>
-                <th className="p-3 w-[22%]">Histórico Técnico</th>
+                <th className="p-3 w-[13%]">Usina</th>
+                <th className="p-3 w-[20%]">Setores Atendidos</th>
+                <th className="p-3 w-[20%]">Causas Diagnosticadas</th>
+                <th className="p-3 w-[20%]">Histórico Técnico</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-agro-border/40 text-slate-300">
               {dadosFiltrados.length > 0 ? (
                 dadosFiltrados.map(os => {
                   const estaAberto = idExpandido === os.idCustomizado;
+                  
                   return (
                     <React.Fragment key={os.idCustomizado}>
                       {/* Linha Principal clicável */}
@@ -371,6 +371,7 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                         onClick={() => alternarExpansao(os.idCustomizado)}
                         className={`transition text-[11px] cursor-pointer ${estaAberto ? 'bg-agro-card/50' : 'hover:bg-agro-card/30'}`}
                       >
+                        {/* 1. Identificação */}
                         <td className="p-3 whitespace-nowrap">
                           <div className="flex items-center gap-1.5 font-bold text-[11px] text-white">
                             {estaAberto ? <ChevronUp size={12} className="text-amber-500 shrink-0"/> : <ChevronDown size={12} className="text-slate-500 shrink-0"/>}
@@ -378,72 +379,115 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
                           </div>
                           <div className="text-[10px] text-slate-500 mt-0.5 ml-3.5">{formatarDataBR(os.dataCriacao)} - {os.horaCriacao}</div>
                         </td>
+                        
+                        {/* 2. Equipamento */}
                         <td className="p-3 font-bold text-amber-500 whitespace-nowrap">
                           🚜 {os.prefixoTrator}
                         </td>
+                        
+                        {/* 3. Usina */}
                         <td className="p-3 truncate" title={os.usinaBase || 'Geral'}>
                           {os.usinaBase || 'Geral'}
                         </td>
-                        <td className="p-3">
-                          <span className="border px-2 py-0.5 rounded block text-center truncate bg-agro-dark border-agro-border text-slate-400 font-medium" title={os.triagemSetor}>
-                            {os.triagemSetor}
-                          </span>
+                        
+                        {/* 4. Múltiplos Setores Atendidos */}
+                        <td className="p-3 space-y-1">
+                          {os.setorOs?.map((s, idx) => (
+                            <div key={idx} className="font-bold text-slate-200 truncate flex items-center gap-1.5">
+                              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${s.status === 'concluido' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                              {s.setor}
+                            </div>
+                          ))}
                         </td>
-                        <td className="p-3 truncate">
-                          <span className={`font-bold ${
-                            os.status !== 'concluido' 
-                              ? 'text-slate-500' 
-                              : os.tipoCausa === 'Hardware (Defeito Real)' 
-                              ? 'text-emerald-400' 
-                              : os.tipoCausa === 'Erro Operacional' 
-                              ? 'text-amber-400' 
-                              : 'text-blue-400'
-                          }`}>
-                            {os.status !== 'concluido' ? '⚠️ Em aberto' : os.tipoCausa}
-                          </span>
+                        
+                        {/* 5. Múltiplas Causas Concorrentes */}
+                        <td className="p-3 space-y-1">
+                          {os.setorOs?.map((s, idx) => (
+                            <div key={idx} className="truncate">
+                              <span className={`font-bold text-[10px] ${
+                                s.status !== 'concluido' 
+                                  ? 'text-slate-500' 
+                                  : s.tipoCausa === 'Hardware (Defeito Real)' 
+                                  ? 'text-emerald-400' 
+                                  : 'text-amber-400'
+                              }`}>
+                                {s.status !== 'concluido' ? '⚠️ Em aberto' : s.tipoCausa}
+                              </span>
+                            </div>
+                          ))}
                         </td>
-                        <td className="p-3 truncate italic text-slate-400" title={os.solucaoTecnico || os.qruDescricao || 'Sem descrição.'}>
-                          {os.solucaoTecnico ? `Ação: ${os.solucaoTecnico}` : `QRU: ${os.qruDescricao}`}
+                        
+                        {/* 6. Múltiplos Históricos Técnicos resumidos */}
+                        <td className="p-3 space-y-1 text-slate-400 italic">
+                          {os.setorOs?.map((s, idx) => (
+                            <div key={idx} className="truncate" title={s.solucaoTecnico || s.qruDescricao}>
+                              {s.solucaoTecnico ? `✓ ${s.solucaoTecnico}` : `⚙️ QRU: ${s.qruDescricao}`}
+                            </div>
+                          ))}
                         </td>
                       </tr>
 
-                      {/* Linha Subterrânea Expandida */}
+                      {/* Linha Subterrânea Expandida Dinâmica */}
                       {estaAberto && (
                         <tr className="bg-agro-dark/60 border-t-0">
-                          <td colSpan={6} className="p-4 border-l-2 border-amber-500 bg-agro-dark/20">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-[11px] text-slate-300 leading-relaxed">
+                          <td colSpan={6} className="p-4 border-l-2 border-amber-500 bg-agro-dark/40">
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 text-[11px] text-slate-300">
                               
-                              {/* Painel Relacional Esquerdo */}
-                              <div className="space-y-2 border-r border-agro-border/30 pr-4">
-                                <h5 className="font-bold text-[10px] uppercase text-slate-500 tracking-wider">Metadados de Log</h5>
-                                <div className="flex items-center gap-2"><User size={12} className="text-slate-500"/> <span><strong>Operador:</strong> {os.idOperador}</span></div>
-                                <div className="flex items-center gap-2"><ShieldAlert size={12} className="text-slate-500"/> <span><strong>Identificado por:</strong> {os.criadoPor || 'Zilor'}</span></div>
-                                <div className="flex items-center gap-2"><ShieldAlert size={12} className="text-slate-500"/> <span><strong>Resolvido por:</strong> {os.tecnicoResponsavel || 'Zilor'}</span></div>
-                                {os.tempoManutencao && (
-                                  <div className="flex items-center gap-2 mt-1 bg-emerald-500/10 text-emerald-400 font-bold p-1.5 rounded-lg border border-emerald-500/20 w-fit">
-                                    <Clock size={12}/> <span>Duração: {os.tempoManutencao}</span>
-                                  </div>
-                                )}
+                              {/* Painel Esquerdo Fixo: Metadados da O.S */}
+                              <div className="space-y-2 border-r border-agro-border/30 pr-4 lg:col-span-1">
+                                <h5 className="font-black text-[10px] uppercase text-slate-500 tracking-wider">Metadados Gerais</h5>
+                                <div><strong>Operador Frota:</strong> <span className="text-slate-200">{os.idOperador}</span></div>
+                                <div><strong>Frente Trabalho:</strong> <span className="text-slate-200">{os.frente}</span></div>
+                                <div><strong>Atividade Fim:</strong> <span className="text-slate-200">{os.atividade}</span></div>
+                                <div className="text-[10px] text-slate-500 font-mono mt-2 pt-2 border-t border-agro-border/20">
+                                  Sync Atlas: {os.atualizadoEm}
+                                </div>
                               </div>
 
-                              {/* Painel Central: QRU */}
-                              <div className="space-y-1">
-                                <h5 className="font-bold text-[10px] uppercase text-amber-500 tracking-wider">Descrição do Problema (QRU)</h5>
-                                <p className="text-slate-400 italic bg-agro-dark/40 p-2.5 rounded-xl border border-agro-border/30">
-                                  "{os.qruDescricao || 'Nenhuma observação descrita no chamado inicial.'}"
-                                </p>
-                              </div>
+                              {/* Painel Central/Direito: Loop Dinâmico de todas as Oficinas Injetadas */}
+                              <div className="lg:col-span-3 space-y-3">
+                                <h5 className="font-black text-[10px] uppercase text-amber-500 tracking-wider">Histórico de Fluxo por Oficina</h5>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {os.setorOs?.map((setor, sIdx) => (
+                                    <div key={sIdx} className="bg-agro-card border border-agro-border rounded-xl p-3 flex flex-col justify-between space-y-2 shadow-inner">
+                                      
+                                      <div className="flex justify-between items-center border-b border-agro-border/30 pb-1.5">
+                                        <span className="font-black text-white text-[11px]">{setor.setor}</span>
+                                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                          setor.status === 'concluido' 
+                                            ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                        }`}>
+                                          {setor.status === 'aguardando_manutencao' ? 'Aguardando' : setor.status}
+                                        </span>
+                                      </div>
 
-                              {/* Painel Direito: Ação Técnica */}
-                              <div className="space-y-1">
-                                <h5 className="font-bold text-[10px] uppercase text-emerald-400 tracking-wider">Ação Corretiva Realizada</h5>
-                                {os.solucaoTecnico ? (
-                                  <p className="text-slate-200 bg-emerald-950/20 border border-emerald-500/20 p-2.5 rounded-xl font-mono">
-                                    {os.solucaoTecnico}
-                                  </p>
-                                ) : (
-                                  <p className="text-slate-500 italic p-2">Nenhuma solução ou encerramento técnico registrado ainda.</p>
-                                )}
+                                      <div className="space-y-1">
+                                        <div className="text-[10px] text-slate-500 uppercase font-bold">Problema Relatado (QRU)</div>
+                                        <p className="text-slate-300 italic">"{setor.qruDescricao}"</p>
+                                        <div className="text-[9px] text-slate-500 font-medium">Aberto por: {setor.criadoPor} | {setor.dataCriacao} - {setor.horaCriacao}</div>
+                                      </div>
+
+                                      {setor.status === 'concluido' ? (
+                                        <div className="border-t border-dashed border-agro-border/50 pt-2 space-y-1 bg-emerald-950/10 p-2 rounded-lg mt-1">
+                                          <div className="text-[10px] text-emerald-400 uppercase font-bold">Ação Técnica Realizada</div>
+                                          <p className="text-slate-200 font-mono text-[10px]">{setor.solucaoTecnico}</p>
+                                          
+                                          <div className="grid grid-cols-2 text-[9px] text-slate-500 font-medium pt-1">
+                                            <span>Responsável: <span className="text-slate-400">{setor.tecnicoResponsavel}</span></span>
+                                            <span className="text-right flex items-center justify-end gap-1"><Clock size={10}/> {setor.tempoManutencao}</span>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="text-slate-500 text-[10px] italic p-1.5 bg-slate-900/30 border border-dashed border-agro-border/40 rounded-lg text-center font-medium">
+                                          Aguardando diagnóstico e encerramento técnico da oficina.
+                                        </div>
+                                      )}
+
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
 
                             </div>

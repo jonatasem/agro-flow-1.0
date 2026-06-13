@@ -1,28 +1,34 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 export function useSubmit() {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // A Ref muda de forma síncrona e imediata, bloqueando cliques concorrentes no mesmo milissegundo
+  const emAndamento = useRef(false);
 
-  const handleSubmit = useCallback((callback: () => void | Promise<void>) => {
-    return async (e: React.FormEvent) => {
-      if (e && e.preventDefault) e.preventDefault();
+  const handleSubmit = useCallback((callback: () => Promise<void> | void) => {
+    return async (e?: React.FormEvent) => {
+      if (e && typeof e.preventDefault === 'function') {
+        e.preventDefault();
+      }
 
-      // Se já estiver enviando, ignora cliques repetidos
-      if (isSubmitting) return;
+      // Se a Ref ou o estado indicarem envio, ignora sumariamente
+      if (emAndamento.current || isSubmitting) return;
 
+      // Trava o gatilho imediatamente de forma síncrona
+      emAndamento.current = true;
       setIsSubmitting(true);
 
       try {
-        // Aguarda a execução da função (importante que onSalvar retorne uma Promise)
         await callback();
       } catch (error) {
-        console.error("Erro ao processar envio:", error);
+        console.error("Erro ao processar envio do formulário Agro:", error);
       } finally {
-        // Libera o botão novamente se necessário (caso precise corrigir algo)
+        // Libera os gatilhos para novos envios
+        emAndamento.current = false;
         setIsSubmitting(false);
       }
     };
-  }, [isSubmitting]);
+  }, [isSubmitting]); // Mantido para consistência de escopo do estado
 
   return { isSubmitting, handleSubmit };
 }

@@ -2,7 +2,16 @@ import type { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import type { AuthenticatedRequest } from '../interfaces/index.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'zilor_chave_secreta_2026_agro';
+const JWT_SECRET_ENV = process.env.JWT_SECRET || "";
+
+// 🔒 Bloqueio de Inicialização Segura: Se não existir, derruba o processo
+if (!JWT_SECRET_ENV) {
+  console.error("❌ ERRO CRÍTICO: A variável de ambiente JWT_SECRET não foi definida no arquivo .env!");
+  process.exit(1);
+}
+
+// 🛡️ Type Assertion: Agora o TS sabe com 100% de certeza que aqui ela é uma string pura!
+const JWT_SECRET = JWT_SECRET_ENV as string;
 
 export function autenticarToken(req: AuthenticatedRequest, res: Response, next: NextFunction) {
   const authHeader = req.headers['authorization'];

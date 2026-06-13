@@ -2,56 +2,51 @@ import { useState, useMemo } from 'react';
 import type { OrdemServicoAgro } from '../interface/index.js';
 
 export function useHistoricoFiltrado(ordens: OrdemServicoAgro[]) {
-  // Estados dos Filtros Avançados
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [setor, setSetor] = useState<string>('TODOS');
   const [usina, setUsina] = useState<string>('TODOS');
   const [equipamento, setEquipamento] = useState('');
   const [operador, setOperador] = useState('');
-
-  // Estado para controlar qual O.S. está expandida
   const [idExpandido, setIdExpandido] = useState<string | null>(null);
 
-  const alternarExpansao = (id: string) => {
-    setIdExpandido(idExpandido === id ? null : id);
-  };
-
+  const alternarExpansao = (id: string) => setIdExpandido(idExpandido === id ? null : id);
+  
   const resetarFiltros = () => {
-    setDataInicio('');
-    setDataFim('');
-    setSetor('TODOS');
-    setUsina('TODOS');
-    setEquipamento('');
-    setOperador('');
-    setIdExpandido(null);
+    setDataInicio(''); setDataFim(''); setSetor('TODOS');
+    setUsina('TODOS'); setEquipamento(''); setOperador(''); setIdExpandido(null);
   };
 
-  // Processamento do Multi-filtro Acumulativo
   const dadosFiltrados = useMemo(() => {
     return ordens.filter(os => {
       if (dataInicio && os.dataCriacao < dataInicio) return false;
       if (dataFim && os.dataCriacao > dataFim) return false;
-      if (setor !== 'TODOS' && os.triagemSetor !== setor) return false;
-      if (usina !== 'TODOS' && os.usinaBase !== usina) return false;
+      if (setor !== 'TODOS' && !os.setorOs.some(s => s.setor === setor)) return false;
+      if (usina !== 'TODOS' && os.usinaBase?.toLowerCase().trim() !== usina.toLowerCase().trim()) return false;
       if (equipamento && !os.prefixoTrator.toLowerCase().includes(equipamento.toLowerCase())) return false;
       if (operador && !os.idOperador.toLowerCase().includes(operador.toLowerCase())) return false;
       return true;
     });
   }, [ordens, dataInicio, dataFim, setor, usina, equipamento, operador]);
 
-  // Cálculos Estatísticos para Gráficos e Cards
   const analiseMetricas = useMemo(() => {
-    let hardware = 0;
-    let operacional = 0;
-    let sinal = 0;
+    let hardware = 0, operacional = 0, sinal = 0;
+    // Aqui fazemos a contagem real baseada em setores
+    let totalSetores = 0;
 
     dadosFiltrados.forEach(os => {
-      if (os.status === 'concluido' && os.tipoCausa) {
-        if (os.tipoCausa === 'Hardware (Defeito Real)') hardware++;
-        else if (os.tipoCausa === 'Erro Operacional') operacional++;
-        else if (os.tipoCausa === 'Infraestrutura (Sinal)') sinal++;
-      }
+      os.setorOs.forEach(s => {
+        // Se o filtro de setor estiver ativo, só conta os que batem com o filtro
+        if (setor === 'TODOS' || s.setor === setor) {
+          totalSetores++;
+          
+          if (s.status === 'concluido' && s.tipoCausa) {
+            if (s.tipoCausa === 'Hardware (Defeito Real)') hardware++;
+            else if (s.tipoCausa === 'Erro Operacional') operacional++;
+            else if (s.tipoCausa === 'Infraestrutura (Sinal)') sinal++;
+          }
+        }
+      });
     });
 
     const totalConcluidos = hardware + operacional + sinal;
@@ -69,33 +64,20 @@ export function useHistoricoFiltrado(ordens: OrdemServicoAgro[]) {
 
     return {
       dadosGrafico: dadosPorcentagem,
-      totalChamados: dadosFiltrados.length,
+      totalChamados: totalSetores, // Agora exibe o número de setores (tarefas)
       totalConcluidos,
       erroOperacionalQtd: operacional,
       porcentagemOperacional: totalConcluidos > 0 ? ((operacional / totalConcluidos) * 100).toFixed(1) : '0'
     };
-  }, [dadosFiltrados]);
+  }, [dadosFiltrados, setor]);
 
-  // Lista dinâmica de Usinas baseada no BD
   const listaUsinas = useMemo(() => {
-    const usinas = new Set(ordens.map(o => o.usinaBase).filter(Boolean));
+    const usinas = new Set(ordens.map(o => o.usinaBase?.trim()).filter(Boolean));
     return ['TODOS', ...Array.from(usinas)];
   }, [ordens]);
 
   return {
-    filtros: {
-      dataInicio, setDataInicio,
-      dataFim, setDataFim,
-      setor, setSetor,
-      usina, setUsina,
-      equipamento, setEquipamento,
-      operador, setOperador
-    },
-    idExpandido,
-    alternarExpansao,
-    resetarFiltros,
-    dadosFiltrados,
-    analiseMetricas,
-    listaUsinas
+    filtros: { dataInicio, setDataInicio, dataFim, setDataFim, setor, setSetor, usina, setUsina, equipamento, setEquipamento, operador, setOperador },
+    idExpandido, alternarExpansao, resetarFiltros, dadosFiltrados, analiseMetricas, listaUsinas
   };
 }

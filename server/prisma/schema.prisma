@@ -3,14 +3,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-generator client {                
+generator client {
   provider = "prisma-client-js"
 }
 
 model ColaboradorAutorizado {
-  id     String @id @default(auto()) @map("_id") @db.ObjectId
+  id        String @id @default(auto()) @map("_id") @db.ObjectId
   matricula String @unique // A matrícula dele para fazer login (Ex: '23805')
-  nome   String // Nome de quem acessa o painel (Ex: 'Jonatas Elieser Moreira')
+  nome      String // Nome de quem acessa o painel (Ex: 'Jonatas Elieser Moreira')
 }
 
 model Operador {
@@ -21,35 +21,45 @@ model Operador {
 }
 
 model Equipamento {
-  id                 String         @id @default(auto()) @map("_id") @db.ObjectId
-  frota            String         @unique // Ex: '850002'
-  modelo  String         // John Deere 7M, etc.
-  ordensServico      OrdemServico[]
+  id            String         @id @default(auto()) @map("_id") @db.ObjectId
+  frota         String         @unique // Ex: '850002'
+  modelo        String         // John Deere 7M, etc.
+  ordensServico OrdemServico[]
+}
+
+// Sub-documento embutido (Array concorrente de oficinas)
+type AtendimentoSetor {
+  setor                String // Agricultura de Precisão, Elétrica, Mecânica, Borracharia
+  status               String   @default("aguardando_manutencao") // aguardando_manutencao, em_manutencao, concluido
+  qruDescricao         String
+  criadoPor            String
+  dataCriacao          String // DD/MM/YYYY
+  horaCriacao          String // HH:MM
+  dataInicioManutencao String? // Guardamos em string ISO para controle do cronômetro
+  tempoManutencao      String? // Tempo total decorrido (Ex: "00:45:12")
+  solucaoTecnico       String   @default("")
+  tipoCausa            String? // Hardware (Defeito Real), Erro Operacional, Infraestrutura (Sinal)
+  tecnicoResponsavel   String?
 }
 
 model OrdemServico {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  idCustomizado      String   @unique // Ex: 'OS-850002-9912'
-  criadoPor          String   // COA - Central, etc.
-  atividade          String   // Herdado ou digitado
-  usinaBase          String   
-  frente             String
-  qruDescricao       String   
-  status             String   @default("pendente") // pendente, em_andamento, concluido
-  triagemSetor       String   // Agricultura de Precisão, Elétrica, Mecânica
-  tipoCausa          String?  // Hardware, Erro Operacional, Sinal
-  solucaoTecnico     String?  
-  tecnicoResponsavel String?
-  dataCriacao        String   // YYYY-MM-DD
-  horaCriacao        String   // HH:MM
-  atualizadoEm       DateTime @updatedAt
-  prefixoTrator      String
-  idOperador         String
-  dataInicioManutencao DateTime?
-  dataFimManutencao DateTime?
-  tempoManutencao String?
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  idCustomizado String   @unique
+  usinaBase     String
+  frente        String
+  atividade     String
+  dataCriacao   String
+  horaCriacao   String
+  atualizadoEm  DateTime @updatedAt
 
-  // Relações no MongoDB usando as chaves declaradas acima
-  equipamento Equipamento @relation(fields: [prefixoTrator], references: [frota])
-  operador    Operador    @relation(fields: [idOperador], references: [codigo])
+  // Esta linha diz ao Prisma: "No código chame de setorOs, mas no banco chame de setores"
+  setorOs       AtendimentoSetor[] @map("setores") 
+
+  prefixoTrator String
+  idOperador    String
+  equipamento   Equipamento @relation(fields: [prefixoTrator], references: [frota])
+  operador      Operador    @relation(fields: [idOperador], references: [codigo])
+
+  @@index([prefixoTrator])
+  @@index([usinaBase])
 }

@@ -7,19 +7,19 @@ import api from './services/api';
 import type { OrdemServicoAgro } from './interface/index.js';
 
 // Importação do custom hook e contexto de autenticação
-import { useDadosMestre } from './hook/useDadosMestre';
+import { useDadosMestre } from './hook/useDadosMestre.js';
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 
 // icons
 import { RefreshCw, PlusCircle, LayoutDashboard, SlidersHorizontal, History, MapPin, LogOut } from 'lucide-react';
 
 // components
-import FormularioOS from './components/FormularioOS';
-import ColunaKanban from './components/ColunaKanban';
-import ModalDetalhes from './components/ModalDetalhes';
+import FormularioOS from './components/FormularioOS.js';
+import ColunaKanban from './components/ColunaKanban.js';
+import ModalDetalhes from './components/ModalDetalhes.js';
 import Login from './pages/Login.js';
-import TelaHistorico from './pages/TelaHistorico';
-import LoadingStatus from './components/LoadingStatus';
+import TelaHistorico from './pages/TelaHistorico.js';
+import LoadingStatus from './components/LoadingStatus.js';
 
 function ConteudoApp() {
   const { usuario, token, logout } = useAuth();
@@ -32,13 +32,14 @@ function ConteudoApp() {
 
   const [filtroFrota, setFiltroFrota] = useState('');
   const [filtroOperador, setFiltroOperador] = useState('');
-  const [setorAtivo, setSetorAtivo] = useState<OrdemServicoAgro['triagemSetor']>('Agricultura de Precisão');
+  const [setorAtivo, setSetorAtivo] = useState<OrdemServicoAgro['setorOs'][number]['setor']>('Agricultura de Precisão');
   const [cidadeAtiva, setCidadeAtiva] = useState<string>('Salto Botelho');
   const [carregando, setCarregando] = useState<boolean>(true);
 
-  const { frotasCadastradas: frotasFiltro, operadoresCadastrados: operadoresFiltro } = useDadosMestre();
+  // 📡 Dados Mestre carregados diretamente do hook real do seu banco
+  const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
 
-  const setoresDisponiveis: OrdemServicoAgro['triagemSetor'][] = [
+  const setoresDisponiveis: OrdemServicoAgro['setorOs'][number]['setor'][] = [
     'Agricultura de Precisão',
     'Elétrica',
     'Mecânica',
@@ -75,7 +76,7 @@ function ConteudoApp() {
     const inicializarPainel = async () => {
       setCarregando(true);
       try {
-        await Promise.all([carregarOrdens()]);
+        await carregarOrdens();
       } catch (error) {
         console.error("Erro na carga inicial do ecossistema:", error);
       } finally {
@@ -86,30 +87,36 @@ function ConteudoApp() {
     inicializarPainel();
   }, [usuario]);
 
+  // 📂 Filtragem Inteligente baseada no Estado das Oficinas concorrentes
   const ordensFiltradasKanban = useMemo(() => {
-    return ordens.filter(os => (
-      (filtroFrota === '' || os.prefixoTrator.includes(filtroFrota)) &&
-      (filtroOperador === '' || os.idOperador.includes(filtroOperador)) &&
-      (os.triagemSetor === setorAtivo) &&
-      (os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim())
-    ));
-  }, [ordens, filtroFrota, filtroOperador, setorAtivo, cidadeAtiva]);
+    return ordens.filter(os => {
+      const atendeFiltroFrota = filtroFrota === '' || os.prefixoTrator.includes(filtroFrota);
+      const atendeFiltroOperador = filtroOperador === '' || os.idOperador.includes(filtroOperador);
+      const atendeUsina = os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim();
+      
+      // Verifica se a O.S. possui atividade registrada no setor selecionado na barra superior
+      const possuiSetorAtivo = os.setorOs.some(s => s.setor === setorAtivo);
 
+      return atendeFiltroFrota && atendeFiltroOperador && atendeUsina && possuiSetorAtivo;
+    });
+  }, [ordens, filtroFrota, filtroOperador, setorAtivo, cidadeAtiva]);
+  
   const salvarOS = async (dadosForm: Partial<OrdemServicoAgro>) => {
     try {
       if (idEmEdicao) {
+        // Edição (PUT)
         const resposta = await api.put(`/ordens/${idEmEdicao}`, dadosForm);
         setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
         setIdEmEdicao(null);
       } else {
-        const payloadZilorAtlas = { ...dadosForm, triagemSetor: setorAtivo };
-        const resposta = await api.post('/ordens', payloadZilorAtlas);
+        // Criação (POST) - Envia diretamente o objeto montado pelo formulário
+        const resposta = await api.post('/ordens', dadosForm);
         setOrdens(prev => [resposta.data, ...prev]);
       }
       setAbaAtiva('dashboard');
     } catch (error: any) {
-      console.error("Erro ao salvar ordem de serviço:", error);
-      alert("Não foi possível salvar a O.S. no servidor.");
+      console.error("Erro completo do Axios:", error);
+      alert("Erro ao salvar ordem de serviço.");
     }
   };
 
@@ -139,7 +146,7 @@ function ConteudoApp() {
           </div>
           
           <div className="hidden md:flex items-center gap-2 border-l border-slate-700 pl-3 text-xs text-slate-400">
-            <span>Solicitante:</span>
+            <span>Operador logado:</span>
             <span className="font-bold text-slate-200 bg-agro-dark border border-agro-border px-2 py-0.5 rounded">
               {usuario.matricula} - {usuario.nome}
             </span>
@@ -159,7 +166,7 @@ function ConteudoApp() {
             </button>
           </div>
 
-          <button onClick={logout} title="Encerrar Turno / Sair" className="p-2 text-slate-400 hover:text-red-400 bg-agro-card border border-agro-border hover:border-red-500/30 rounded-xl transition cursor-pointer">
+          <button onClick={logout} title="Encerrar Turno" className="p-2 text-slate-400 hover:text-red-400 bg-agro-card border border-agro-border hover:border-red-500/30 rounded-xl transition cursor-pointer">
             <LogOut size={15} />
           </button>
         </div>
@@ -173,7 +180,9 @@ function ConteudoApp() {
                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Frota</label>
                 <input type="text" list="filtro-frotas-db" placeholder="Ex: 850002" value={filtroFrota} onChange={e => setFiltroFrota(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" />
                 <datalist id="filtro-frotas-db">
-                  {frotasFiltro.slice(0, 5).map(equip => <option key={equip.frota} value={equip.frota}>{equip.modelo}</option>)}
+                  {frotasCadastradas.slice(0, 5).map(equip => (
+                    <option key={equip.frota} value={equip.frota}>{equip.modelo}</option>
+                  ))}
                 </datalist>
               </div>
 
@@ -181,7 +190,9 @@ function ConteudoApp() {
                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Operador</label>
                 <input type="text" list="filtro-operadores-db" placeholder="Ex: 23805" value={filtroOperador} onChange={e => setFiltroOperador(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" />
                 <datalist id="filtro-operadores-db">
-                  {operadoresFiltro.slice(0, 5).map(op => <option key={op.codigo} value={op.codigo}>{op.nome}</option>)}
+                  {operadoresCadastrados.slice(0, 5).map(op => (
+                    <option key={op.codigo} value={op.codigo}>{op.nome}</option>
+                  ))}
                 </datalist>
               </div>
               
@@ -192,10 +203,15 @@ function ConteudoApp() {
               <LoadingStatus />
             ) : (
               <>
+                {/* 🏢 Seletor de Usina Física */}
                 <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-3 flex flex-wrap gap-2 items-center">
                   <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1"><MapPin size={12} />Usina Ativa:</span>
                   {cidadesDisponiveis.map(cidade => {
-                    const qtdCidade = ordens.filter(os => os.usinaBase?.toLowerCase().trim() === cidade.toLowerCase().trim() && os.status !== 'concluido').length;
+                    const qtdCidade = ordens.filter(os => 
+                      os.usinaBase?.toLowerCase().trim() === cidade.toLowerCase().trim() && 
+                      os.setorOs.some(s => s.status !== 'concluido')
+                    ).length;
+                    
                     return (
                       <button key={cidade} onClick={() => setCidadeAtiva(cidade)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${cidadeAtiva === cidade ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
                         <span>🏢 {cidade}</span>
@@ -205,10 +221,15 @@ function ConteudoApp() {
                   })}
                 </section>
 
+                {/* 📡 Seletor Concorrente de Oficina Monitorada */}
                 <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-6 flex flex-wrap gap-2 items-center">
-                  <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1"><SlidersHorizontal size={12} /> Setor Ativo:</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1"><SlidersHorizontal size={12} /> Oficina sob Monitoria:</span>
                   {setoresDisponiveis.map(setor => {
-                    const qtdPendentes = ordens.filter(os => os.triagemSetor === setor && os.status === 'pendente' && os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim()).length;
+                    const qtdPendentes = ordens.filter(os => 
+                      os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim() &&
+                      os.setorOs.some(s => s.setor === setor && s.status === 'aguardando_manutencao')
+                    ).length;
+
                     return (
                       <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
                         <span>{setor === 'Agricultura de Precisão' ? '📡 Ag. Precisão' : setor === 'Elétrica' ? '⚡ Elétrica' : setor === 'Mecânica' ? '🔧 Mecânica' : ' 🚚 Borracharia'}</span>
@@ -218,10 +239,11 @@ function ConteudoApp() {
                   })}
                 </section>
 
+                {/* Painel Kanban Orientado ao Subsetor Ativo */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <ColunaKanban titulo="⏳ Triagem" status="pendente" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
-                  <ColunaKanban titulo="🛠️ Em manutenção" status="em_andamento" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
-                  <ColunaKanban titulo="✅ Liberado" status="concluido" ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
+                  <ColunaKanban titulo="⏳ Triagem" status="aguardando_manutencao" setorAtivo={setorAtivo} ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
+                  <ColunaKanban titulo="🛠️ Em manutenção" status="em_manutencao" setorAtivo={setorAtivo} ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
+                  <ColunaKanban titulo="✅ Liberado" status="concluido" setorAtivo={setorAtivo} ordens={ordensFiltradasKanban} onSelecionarCard={setOsSelecionada} onEditar={(os, e) => { e.stopPropagation(); setIdEmEdicao(os.idCustomizado); setAbaAtiva('criar'); }} onExcluir={(idCustomizado, e) => { e.stopPropagation(); deletarOS(idCustomizado); }} />
                 </div>
               </>
             )}
@@ -234,41 +256,47 @@ function ConteudoApp() {
 
       </div>
 
+      {/* Modal de Laudos Avançados e Encaminhamentos */}
       {osSelecionada && (
         <ModalDetalhes 
           os={osSelecionada} 
+          setorContexto={setorAtivo}
           onFechar={() => setOsSelecionada(null)} 
           onTransferirSetor={async (idCustomizado, proximoSetor) => {
             try {
-              await api.put(`/ordens/${idCustomizado}`, { triagemSetor: proximoSetor });
+              await api.put(`/ordens/${idCustomizado}/transferir`, { proximoSetor });
               await carregarOrdens();
               setOsSelecionada(null);
             } catch (err) {
-              alert("Erro ao transferir setor.");
+              alert("Erro na transferência de oficina.");
             }
           }}
-          onAvancarStatus={async (idCustomizado, prox, solucaoParcial, causaDefinida) => { 
+          onAvancarStatus={async (idCustomizado, proxStatus, solucaoParcial, causaDefinida) => { 
             try {
-              await api.put(`/ordens/${idCustomizado}`, { status: prox, solucaoTecnico: solucaoParcial, tipoCausa: causaDefinida }); 
+              await api.put(`/ordens/${idCustomizado}/status`, { 
+                setor: setorAtivo,
+                status: proxStatus, 
+                solucaoTecnico: solucaoParcial, 
+                tipoCausa: causaDefinida 
+              }); 
               await carregarOrdens();
-              setOsSelecionada(null); 
+              setOsSelecionada(null);
             } catch (err) {
-              alert("Erro ao atualizar status.");
+              alert("Erro ao atualizar progresso de box.");
             }
           }}
           onDarBaixaFinal={async (idCustomizado, laudo) => {
             try {
-              await api.put(`/ordens/${idCustomizado}`, { 
-                status: 'concluido', 
+              await api.put(`/ordens/${idCustomizado}/baixa`, { 
+                setor: setorAtivo,
                 tipoCausa: laudo.causa, 
-                triagemSetor: laudo.setor, 
-                solucaoTecnico: laudo.solucao || 'Resolvido no campo.', 
-                tecnicoResponsavel: usuario ? usuario.nome : 'Não Identificado'
+                solucaoTecnico: laudo.solucao || 'Manutenção concluída.', 
+                tecnicoResponsavel: usuario ? usuario.nome : 'COA Atlas'
               });
               await carregarOrdens();
               setOsSelecionada(null);
             } catch (err) {
-              alert("Erro ao dar baixa final na O.S.");
+              alert("Erro ao emitir laudo de encerramento.");
             }
           }}
         />

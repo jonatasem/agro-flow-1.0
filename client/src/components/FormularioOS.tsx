@@ -1,11 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useDadosMestre } from '../hook/useDadosMestre.js';
 import { useSubmit } from '../hook/useSubmit.js';
-import { useAuth } from '../context/AuthContext.js'; // 🔓 Importando o contexto do usuário logado
+import { useBuscaProxima } from '../hook/useBuscaProxima.js';
+import { useAuth } from '../context/AuthContext.js';
 import type { FormularioOSProps, OrdemServicoAgro } from '../interface/index.js';
 
 export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar }: FormularioOSProps) {
-  const { usuario } = useAuth(); // 👈 Pegando o colaborador autenticado no painel
+  const { usuario } = useAuth();
 
   const [prefixo, setPrefixo] = useState('');
   const [operador, setOperador] = useState('');
@@ -15,85 +16,92 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const [qru, setQru] = useState('');
   
   const [usinaSelecionada, setUsinaSelecionada] = useState('');
-  const [setorSelecionado, setSetorSelecionado] = useState<OrdemServicoAgro['triagemSetor'] | ''>('');
+  const [setorSelecionado, setSetorSelecionado] = useState<OrdemServicoAgro['setorOs'][number]['setor'] | ''>('');
 
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
   const { isSubmitting, handleSubmit } = useSubmit();
 
   const cidadesZilor = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
-  const SetoresZilor: OrdemServicoAgro['triagemSetor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
+  const SetoresZilor: OrdemServicoAgro['setorOs'][number]['setor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
   const equipamentosZilor = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
   const frentesZilor = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
 
-  // 📝 Gerencia o preenchimento automático baseado no fluxo (Nova OS vs Edição)
+  // 📝 Gerencia o preenchimento automático baseado na estrutura de sub-documentos
   useEffect(() => {
     if (idEmEdicao) {
       const os = ordens.find(o => o.idCustomizado === idEmEdicao);
       if (os) {
         setPrefixo(os.prefixoTrator || '');
         setOperador(os.idOperador || '');
-        setCriador(os.criadoPor || '');
         setFrente(os.frente || '');
         setAtividade(os.atividade || '');
-        setQru(os.qruDescricao || '');
         setUsinaSelecionada(os.usinaBase || '');
-        setSetorSelecionado(os.triagemSetor || '');
+        
+        if (os.setorOs && os.setorOs.length > 0) {
+          const primeiroAtendimento = os.setorOs[0];
+          setSetorSelecionado(primeiroAtendimento.setor);
+          setQru(primeiroAtendimento.qruDescricao || '');
+          setCriador(primeiroAtendimento.criadoPor || '');
+        }
       }
     } else if (usuario) {
-      // Se for uma nova O.S., preenche automaticamente com a identificação do logado
       setCriador(`${usuario.matricula} - ${usuario.nome}`);
     }
   }, [idEmEdicao, ordens, usuario]);
 
-  const frotasSugestao = useMemo(() => {
-    const busca = prefixo.trim().toLowerCase();
-    if (!busca) return frotasCadastradas.slice(0, 5);
-
-    return frotasCadastradas
-      .filter(equip => equip.frota.toLowerCase().includes(busca))
-      .sort((a, b) => {
-        const aComecaCom = a.frota.toLowerCase().startsWith(busca);
-        const bComecaCom = b.frota.toLowerCase().startsWith(busca);
-        if (aComecaCom && !bComecaCom) return -1;
-        if (!aComecaCom && bComecaCom) return 1;
-        return a.frota.length - b.frota.length || a.frota.localeCompare(b.frota);
-      })
-      .slice(0, 5);
-  }, [prefixo, frotasCadastradas]);
-
-  const operadoresSugestao = useMemo(() => {
-    const busca = operador.trim().toLowerCase();
-    if (!busca) return operadoresCadastrados.slice(0, 5);
-
-    return operadoresCadastrados
-      .filter(op => op.codigo.toLowerCase().includes(busca))
-      .sort((a, b) => {
-        const aComecaCom = a.codigo.toLowerCase().startsWith(busca);
-        const bComecaCom = b.codigo.toLowerCase().startsWith(busca);
-        if (aComecaCom && !bComecaCom) return -1;
-        if (!aComecaCom && bComecaCom) return 1;
-        return a.codigo.length - b.codigo.length || a.codigo.localeCompare(b.codigo);
-      })
-      .slice(0, 5);
-  }, [operador, operadoresCadastrados]);
+  // 🥇 Aplicando o hook de busca por proximidade estrita
+  const frotasSugestao = useBuscaProxima(frotasCadastradas, prefixo, 'frota', 5);
+  const operadoresSugestao = useBuscaProxima(operadoresCadastrados, operador, 'codigo', 5);
 
   const onSubmitForm = handleSubmit(async () => {
-    const cityFinal = usinaSelecionada || 'Geral Zilor';
-    
-    await onSalvar({
-      prefixoTrator: prefixo.trim(),
-      idOperador: operador.trim(),
-      criadoPor: criador.trim(),
-      frente: frente.trim(),
-      atividade: atividade.trim(),
-      usinaBase: cityFinal,
-      triagemSetor: setorSelecionado as OrdemServicoAgro['triagemSetor'],
-      qruDescricao: qru.trim()
-    });
+  const cityFinal = usinaSelecionada || 'Geral Zilor';
+  const agora = new Date();
+  
+  // Captura de data e hora local do sistema de forma limpa
+  const dataString = agora.toLocaleDateString('pt-BR'); // Retorna DD/MM/AAAA
+  const horaString = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+  // 1. Montagem do payload rigorosamente alinhado com o validador do Backend
+  const payloadForm: Partial<OrdemServicoAgro> = {
+    prefixoTrator: prefixo.trim(),
+    idOperador: operador.trim(),
+    frente: frente.trim(),
+    atividade: atividade.trim(),
+    usinaBase: cityFinal,
+  };
+
+  if (idEmEdicao) {
+    // 2. Fluxo de Edição: Mantém o histórico existente intacto
+    const osOriginal = ordens.find(o => o.idCustomizado === idEmEdicao);
+    if (osOriginal && osOriginal.setorOs && osOriginal.setorOs.length > 0) {
+      const setoresAtualizados = [...osOriginal.setorOs];
+      setoresAtualizados[0] = {
+        ...setoresAtualizados[0],
+        qruDescricao: qru.trim()
+      };
+      payloadForm.setorOs = setoresAtualizados;
+    }
+  } else {
+    // 3. Fluxo de Criação: Nova OS com o array inicial exigido pelo Backend
+    payloadForm.setorOs = [
+      {
+        setor: setorSelecionado as OrdemServicoAgro['setorOs'][number]['setor'],
+        status: 'aguardando_manutencao',
+        qruDescricao: qru.trim(),
+        criadoPor: criador.trim(),
+        dataCriacao: dataString, // Gravando como String DD/MM/AAAA puro
+        horaCriacao: horaString, // Gravando como String HH:MM puro
+        solucaoTecnico: ''
+      }
+    ];
+  }
+
+    // 4. Dispara para a função salvarOS do ConteudoApp
+    await onSalvar(payloadForm);
   });
 
   return (
-    <section className="max-w-2xl mx-auto bg-[#181b26] border border-agro-border rounded-2xl p-6 shadow-xl text-xs">
+    <section className="max-w-2xl mx-auto bg-[#181b26] border border-agro-border rounded-2xl p-6 shadow-xl text-xs animate-fade-in">
       <h2 className="text-lg font-black text-white mb-1">
         {idEmEdicao ? '📝 Editar Registro de Chamado' : '🚀 Registrar Nova O.S. Operacional'}
       </h2>
@@ -143,13 +151,12 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {/* 🔥 Campo Criador automatizado e protegido de fraudes */}
           <div>
             <label className="text-[10px] font-bold text-green-400 uppercase block mb-1">Quem está abrindo a OS? *</label>
             <input 
               type="text" 
               required 
-              readOnly // 🔒 Impede edição manual
+              readOnly 
               value={criador} 
               className="w-full bg-agro-dark/60 border border-agro-border rounded-xl p-2.5 text-slate-400 outline-none select-none font-semibold cursor-not-allowed border-dashed" 
             />
@@ -209,14 +216,15 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
           </div>
 
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Setor do chamado *</label>
+            <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Setor Inicial do chamado *</label>
             <select 
               required
+              disabled={!!idEmEdicao} 
               value={setorSelecionado}
-              onChange={e => setSetorSelecionado(e.target.value as OrdemServicoAgro['triagemSetor'])}
-              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold"
+              onChange={e => setSetorSelecionado(e.target.value as OrdemServicoAgro['setorOs'][number]['setor'])}
+              className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <option value="" disabled>Selecione o setor para este chamado...</option>
+              <option value="" disabled>Selecione o setor inicial...</option>
               {SetoresZilor.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
