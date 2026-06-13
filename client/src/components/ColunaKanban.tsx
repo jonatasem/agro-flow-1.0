@@ -3,7 +3,7 @@ import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, Shield
 import { formatarDataBR } from '../utils/date.js';
 import { useState, useEffect, useMemo } from 'react';
 
-// ⏱️ Sub-componente isolado para gerenciar o cronômetro rodando segundo a segundo
+// Sub-componente isolado para gerenciar o cronômetro rodando segundo a segundo
 function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
   const [tempoPassado, setTempoPassado] = useState('00:00:00');
 
@@ -48,14 +48,14 @@ function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
 export default function ColunaKanban({ 
   titulo, 
   status, 
-  setorAtivo, // 📡 Recebe qual oficina o monitor do COA está filtrando no momento
+  setorAtivo, // Recebe qual oficina o monitor do COA está filtrando no momento
   ordens, 
   onSelecionarCard, 
   onEditar, 
   onExcluir 
 }: ColunaKanbanProps) {
 
-  // 📂 Filtragem Concorrente: Filtra as OSs que possuem o setor ativo e cujo status interno corresponda a esta coluna
+  // Filtragem Concorrente: Filtra as OSs que possuem o setor ativo e cujo status interno corresponda a esta coluna
   const ordensFiltradas = useMemo(() => {
     return ordens.filter(os => {
       const subAtendimento = os.setorOs.find(s => s.setor === setorAtivo);
@@ -100,14 +100,14 @@ export default function ColunaKanban({
                 </span>
               </div>
 
-              {/* 🕒 SEÇÃO DINÂMICA DE CRONÔMETRO / TEMPO FINALIZADO */}
+              {/* SEÇÃO DINÂMICA DE CRONÔMETRO / TEMPO FINALIZADO */}
               {oficinaDoCard?.status === 'em_manutencao' && oficinaDoCard.dataInicioManutencao && (
                 <CardCronometro dataInicio={oficinaDoCard.dataInicioManutencao} />
               )}
 
               {isConcluido && oficinaDoCard?.tempoManutencao && (
                 <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1 w-fit">
-                  ⏱️ Duração em Box: {oficinaDoCard.tempoManutencao}
+                  ⏱️ Duração da manutenção {oficinaDoCard.tempoManutencao}
                 </div>
               )}
 
@@ -163,7 +163,7 @@ export default function ColunaKanban({
                   Por: {oficinaDoCard?.criadoPor || 'COA'}
                 </span>
                 
-                {/* 🔒 Gerenciador de Trancamento de Ações */}
+                {/* Gerenciador de Trancamento de Ações */}
                 <div className="flex items-center gap-3 shrink-0">
                   {isConcluido ? (
                     <div className="text-slate-500 flex items-center gap-1 text-[10px] font-bold select-none bg-agro-dark border border-agro-border px-2 py-0.5 rounded-md">
