@@ -10,8 +10,7 @@ import {
   FileText, 
   ChevronDown, 
   ChevronUp, 
-  Clock, 
-  ShieldAlert 
+  Clock
 } from 'lucide-react';
 import { useDadosMestre } from '../hook/useDadosMestre.js';
 import { useHistoricoFiltrado } from '../hook/useHistoricoFiltrado.js';
@@ -253,100 +252,83 @@ export default function TelaHistorico({ ordens }: TelaHistoricoProps) {
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Registros Gerais do Histórico</h4>
         </div>
 
-        {/* LAYOUT MOBILE */}
-        <div className="block md:hidden divide-y divide-agro-border/60 bg-[#151822]">
-          {dadosFiltrados.length > 0 ? (
-            dadosFiltrados.map(os => {
-              const estaAberto = idExpandido === os.idCustomizado;
-              return (
-                <div 
-                  key={os.idCustomizado} 
-                  onClick={() => alternarExpansao(os.idCustomizado)}
-                  className={`p-4 space-y-3 transition cursor-pointer ${estaAberto ? 'bg-agro-card/40' : 'hover:bg-agro-card/20'}`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-white">{os.idCustomizado}</span>
-                        {estaAberto ? <ChevronUp size={12} className="text-amber-500" /> : <ChevronDown size={12} className="text-slate-400" />}
-                      </div>
-                      <span className="text-[10px] text-slate-400 block mt-0.5">{formatarDataBR(os.dataCriacao)} às {os.horaCriacao}</span>
+      {/* LAYOUT MOBILE */}
+      <div className="block md:hidden divide-y divide-agro-border/60 bg-[#151822]">
+        {dadosFiltrados.length > 0 ? (
+          dadosFiltrados.map(os => {
+            const estaAberto = idExpandido === os.idCustomizado;
+            // Pega o último setor como referência de status atual
+            const setorAtual = os.setorOs?.[os.setorOs.length - 1];
+
+            return (
+              <div 
+                key={os.idCustomizado} 
+                onClick={() => alternarExpansao(os.idCustomizado)}
+                className={`p-4 space-y-3 transition cursor-pointer ${estaAberto ? 'bg-agro-card/40' : 'hover:bg-agro-card/20'}`}
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 block uppercase">Identificação</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-xs text-white">{os.idCustomizado}</span>
+                      {estaAberto ? <ChevronUp size={12} className="text-amber-500" /> : <ChevronDown size={12} className="text-slate-400" />}
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-slate-500 block uppercase">Equipamento</span>
-                      <span className="font-bold text-amber-500 text-xs block">🚜 {os.prefixoTrator}</span>
-                    </div>
+                    <span className="text-[10px] text-slate-400 block mt-0.5">{formatarDataBR(os.dataCriacao)} às {os.horaCriacao}</span>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-500 block uppercase">Usina</span>
-                      <span className="font-medium truncate block text-slate-300">{os.usinaBase || 'Geral'}</span>
-                    </div>
-                    <div>
-                      <span className="text-[9px] font-bold text-slate-500 block uppercase">Setor Responsável</span>
-                      <span className="font-medium truncate block text-slate-300">{os.setorOs?.[0]?.setor}</span>
-                    </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-bold text-slate-500 block uppercase">Equipamento</span>
+                    <span className="font-bold text-amber-500 text-xs block">🚜 {os.prefixoTrator}</span>
                   </div>
-
-                  {/* Detalhes do Mobile Expandido */}
-                  {estaAberto && (
-                    <div className="p-3 rounded-xl border space-y-2.5 bg-agro-dark/80 border-agro-border/50 text-[11px] text-slate-300 border-t border-dashed mt-2">
-                      <div className="grid grid-cols-2 gap-2 border-b border-agro-border/30 pb-2">
-                        <div>
-                          <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><User size={9}/> Operador</span>
-                          <span className="text-slate-300 font-medium">{os.idOperador}</span>
-                        </div>
-                        <div>
-                          <span className="text-[9px] font-bold text-slate-500 uppercase flex items-center gap-1"><ShieldAlert size={9}/> Aberto Por</span>
-                          <span className="text-slate-300 font-medium">{os.setorOs?.[0]?.criadoPor || 'Zilor'}</span>
-                        </div>
-                      </div>
-
-                      {os.setorOs?.[0]?.tempoManutencao && (
-                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold border-b border-agro-border/30 pb-2">
-                          <Clock size={12}/>
-                          <span>Tempo total de Reparo: {os.setorOs?.[0]?.tempoManutencao}</span>
-                        </div>
-                      )}
-
-                      <div>
-                        <span className="text-[9px] font-bold text-slate-500 block uppercase">Causa Real</span>
-                        <span className={`font-bold text-[11px] ${
-                          os.setorOs?.[0].status !== 'concluido' 
-                            ? 'text-slate-500' 
-                            : os.setorOs?.[0].tipoCausa === 'Hardware (Defeito Real)' 
-                            ? 'text-emerald-400' 
-                            : os.setorOs?.[0].tipoCausa === 'Erro Operacional' 
-                            ? 'text-amber-400' 
-                            : 'text-blue-400'
-                        }`}>
-                          {os.setorOs?.[0].status !== 'concluido' ? '⚠️ Em aberto' : os.setorOs?.[0].tipoCausa}
-                        </span>
-                      </div>
-                      
-                      <div className="border-t pt-2 border-agro-border/30">
-                        <span className="text-[9px] font-bold text-slate-500 block uppercase">Problema Informado (QRU)</span>
-                        <p className="text-slate-400 italic">"{os.setorOs?.[0].qruDescricao || 'Sem descrição registrada.'}"</p>
-                      </div>
-
-                      {os.setorOs?.[0].solucaoTecnico && (
-                        <div className="border-t pt-2 border-agro-border/30">
-                          <span className="text-[9px] font-bold text-slate-400 block uppercase">Ação Corretiva do Técnico</span>
-                          <p className="text-emerald-400 font-medium font-mono bg-emerald-950/20 p-2 rounded-lg border border-emerald-500/10">{os.setorOs?.[0].solucaoTecnico}</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
-              );
-            })
-          ) : (
-            <div className="p-8 text-center text-slate-500 italic">Nenhum registro encontrado.</div>
-          )}
-        </div>
- {/* LAYOUT DESKTOP */}
+
+                <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                  <div>
+                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Usina</span>
+                    <span className="font-medium truncate block text-slate-300">{os.usinaBase || 'Geral'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[9px] font-bold text-slate-500 block uppercase">Setor Atual</span>
+                    <span className="font-medium truncate block text-emerald-500">{setorAtual?.setor || 'N/A'}</span>
+                  </div>
+                </div>
+
+                {/* Detalhes do Mobile Expandido: Histórico Completo */}
+                {estaAberto && (
+                  <div className="space-y-3 mt-3">
+                    {os.setorOs?.map((setor, index) => (
+                      <div key={index} className="p-3 rounded-xl border border-agro-border/50 bg-agro-dark/90 text-[11px] text-slate-300">
+                        <div className="flex justify-between border-b border-agro-border/30 pb-2 mb-2">
+                          <span className="font-bold text-amber-500">{setor.setor}</span>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                            setor.status === 'concluido' ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-800 text-slate-400'
+                          }`}>
+                            {setor.status.toUpperCase()}
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-1.5">
+                          <p className="text-slate-400 italic">"{setor.qruDescricao}"</p>
+                          {setor.solucaoTecnico && (
+                            <p className="text-emerald-400 font-medium">✅ {setor.solucaoTecnico}</p>
+                          )}
+                          <div className="flex justify-between text-[9px] text-slate-500 pt-1">
+                            <span>Responsável: {setor.tecnicoResponsavel || 'Pendente'}</span>
+                            <span>{setor.tempoManutencao ? `⏱️ ${setor.tempoManutencao}` : ''}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        ) : (
+          <div className="p-8 text-center text-slate-500 italic">Nenhum registro encontrado.</div>
+        )}
+      </div>
+
+        {/* LAYOUT DESKTOP */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left table-fixed border-collapse">
             <thead>
