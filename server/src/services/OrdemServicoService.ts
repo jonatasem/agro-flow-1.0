@@ -1,10 +1,12 @@
 import { PrismaClient } from '@prisma/client';
 import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'ZILOR_SECRET_KEY';
 
 interface SetorOs {
+  id?: string;
   setor: string;
   status: 'aguardando_manutencao' | 'em_manutencao' | 'concluido';
   qruDescricao: string;
@@ -51,17 +53,35 @@ export class OrdemServicoService {
     return await prisma.ordemServico.findMany({ orderBy: { idCustomizado: 'desc' } });
   }
 
-  // --- MÉTODO ATUALIZADO PARA SUPORTAR EDIÇÃO COMPLETA DO FRONTEND ---
   async atualizar(idCustomizado: string, dados: any) {
+    if (!idCustomizado || idCustomizado === 'undefined') {
+      throw new Error("O 'idCustomizado' da OS não foi fornecido ou é inválido.");
+    }
+
+    const osOriginal = await prisma.ordemServico.findUnique({ where: { idCustomizado } });
+    if (!osOriginal) throw new Error("Ordem de serviço não encontrada no banco.");
+
+    const dadosAtualizacao: any = {};
+    if (dados.idOperador !== undefined) dadosAtualizacao.idOperador = dados.idOperador?.trim();
+    if (dados.frente !== undefined) dadosAtualizacao.frente = dados.frente?.trim();
+    if (dados.atividade !== undefined) dadosAtualizacao.atividade = dados.atividade?.trim();
+    if (dados.usinaBase !== undefined) dadosAtualizacao.usinaBase = dados.usinaBase?.trim();
+    if (dados.prefixoTrator !== undefined) dadosAtualizacao.prefixoTrator = dados.prefixoTrator?.trim();
+
+    if (dados.setorOs && Array.isArray(dados.setorOs) && dados.setorOs.length > 0) {
+      const setoresExistentes = [...(osOriginal.setorOs as any[])];
+      if (setoresExistentes.length > 0) {
+        setoresExistentes[0] = {
+          ...setoresExistentes[0],
+          qruDescricao: dados.setorOs[0].qruDescricao?.trim() || setoresExistentes[0].qruDescricao
+        };
+        dadosAtualizacao.setorOs = setoresExistentes;
+      }
+    }
+
     return await prisma.ordemServico.update({
       where: { idCustomizado },
-      data: { 
-        idOperador: dados.idOperador?.trim(), 
-        frente: dados.frente?.trim(), 
-        atividade: dados.atividade?.trim(), 
-        usinaBase: dados.usinaBase?.trim(),
-        prefixoTrator: dados.prefixoTrator?.trim()
-      }
+      data: dadosAtualizacao
     });
   }
 
@@ -78,13 +98,19 @@ export class OrdemServicoService {
       }
     });
 
+    // 🛑 Modificado: Se já existe uma OS aberta para o trator, não adicionamos outra oficina concorrente na array. 
+    // Nós barramos ou simplesmente atualizamos o setor ativo atual para o novo desejado.
     if (osAbertaExistente) {
       const setorDestino = setorInicial.setor || 'Agricultura de Precisão';
-      const setorJaExiste = (osAbertaExistente.setorOs as any[]).some((s: any) => s.setor === setorDestino && s.status !== 'concluido');
+      const oficinaAtiva = (osAbertaExistente.setorOs as any[]).find((s: any) => s.status !== 'concluido');
       
-      if (setorJaExiste) throw new Error(`O setor ${setorDestino} já está em atendimento.`);
+      if (oficinaAtiva && oficinaAtiva.setor === setorDestino) {
+        throw new Error(`O setor ${setorDestino} já está em atendimento ativo para este trator.`);
+      }
 
+      // Se a intenção é mover de setor porque o trator está em outra oficina aberta, limpamos a array substituindo pela nova oficina informada
       const novaOficina: SetorOs = {
+        id: uuidv4(),
         setor: setorDestino,
         status: 'aguardando_manutencao',
         qruDescricao: setorInicial.qruDescricao || 'Sem descrição inicial.',
@@ -96,7 +122,7 @@ export class OrdemServicoService {
 
       return await prisma.ordemServico.update({ 
         where: { idCustomizado: osAbertaExistente.idCustomizado }, 
-        data: { setorOs: [...(osAbertaExistente.setorOs as any[]), novaOficina] } 
+        data: { setorOs: [novaOficina] } // 🔁 Mantém apenas uma única oficina ativa limpa
       });
     }
 
@@ -114,6 +140,7 @@ export class OrdemServicoService {
         dataCriacao: dataAtual,
         horaCriacao: horaAtual,
         setorOs: [{
+          id: uuidv4(),
           setor: setorInicial.setor || 'Agricultura de Precisão',
           status: 'aguardando_manutencao',
           qruDescricao: setorInicial.qruDescricao || 'Sem descrição inicial.',
@@ -126,13 +153,19 @@ export class OrdemServicoService {
     });
   }
 
-  async atualizarStatusOficina(idCustomizado: string, setor: string, status: string, solucao?: string, causa?: string) {
+  async atualizarStatusOficina(idCustomizado: string, setorId: string, status: string, solucao?: string, causa?: string) {
     const os = await prisma.ordemServico.findUnique({ where: { idCustomizado } });
     if (!os) throw new Error("OS não encontrada.");
 
     const setorOsAtualizado = (os.setorOs as any[]).map(s => {
-      if (s.setor === setor) {
-        return { ...s, status, solucaoTecnico: solucao ?? s.solucaoTecnico, tipoCausa: causa ?? s.tipoCausa, dataInicioManutencao: status === 'em_manutencao' ? new Date().toISOString() : s.dataInicioManutencao };
+      if (s.id === setorId) {
+        return { 
+          ...s, 
+          status, 
+          solucaoTecnico: solucao ?? s.solucaoTecnico, 
+          tipoCausa: causa ?? s.tipoCausa, 
+          dataInicioManutencao: status === 'em_manutencao' ? new Date().toISOString() : s.dataInicioManutencao 
+        };
       }
       return s;
     });
@@ -140,40 +173,55 @@ export class OrdemServicoService {
     return await prisma.ordemServico.update({ where: { idCustomizado }, data: { setorOs: setorOsAtualizado } });
   }
 
-  async injetarNovaOficina(idCustomizado: string, setorOrigem: string, setorDestino: string) {
+  // 🔄 CORREÇÃO CIRÚRGICA: MUTAÇÃO PURA DE SETOR
+  // Remove totalmente o registro antigo para evitar acúmulo na array e impedir cards fantasmas.
+  async injetarNovaOficina(idCustomizado: string, setorId: string, setorDestino: string) {
     const os = await prisma.ordemServico.findUnique({ where: { idCustomizado } });
     if (!os) throw new Error("OS não encontrada.");
     
-    const arrayAtual = os.setorOs as any[];
+    const agora = new Date();
+    const dataAtual = agora.toLocaleDateString('pt-BR');
+    const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    // Pegamos o objeto do setor original para preservar a descrição (QRU)
-    const setorOriginal = arrayAtual.find(s => s.setor === setorOrigem);
+    // 1. Filtramos para REMOVER completamente a oficina antiga da array
+    const arraySemOficinaAntiga = (os.setorOs as any[]).filter(s => s.id !== setorId);
 
+    // 2. Buscamos a oficina de origem apenas para manter o QRU / Descrição digitada originalmente
+    const oficinaOrigem = (os.setorOs as any[]).find(s => s.id === setorId);
+
+    // 3. Montamos o novo setor que vai assumir o card na triagem do Kanban de destino
     const novaOficina: SetorOs = {
+      id: uuidv4(), // Novo ID único gerado para a oficina ativa
       setor: setorDestino,
       status: 'aguardando_manutencao',
-      // Preservamos o QRU original e os dados de criação
-      qruDescricao: setorOriginal?.qruDescricao || "Transferido",
-      criadoPor: setorOriginal?.criadoPor || 'Sistema de Fluxo',
-      dataCriacao: setorOriginal?.dataCriacao || new Date().toLocaleDateString('pt-BR'),
-      horaCriacao: setorOriginal?.horaCriacao || new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      qruDescricao: oficinaOrigem?.qruDescricao || "Transferido sem descrição",
+      criadoPor: oficinaOrigem?.criadoPor || 'Sistema de Fluxo',
+      dataCriacao: dataAtual,
+      horaCriacao: horaAtual,
       solucaoTecnico: ''
     };
 
-    // Substituímos o array inteiro por um novo array contendo APENAS o novo setor
+    // 4. Sobrescrevemos a propriedade no MongoDB deixando apenas a nova oficina ativa
     return await prisma.ordemServico.update({ 
       where: { idCustomizado }, 
-      data: { setorOs: [novaOficina] } // Aqui está a mágica: substitui tudo pelo novo
+      data: { setorOs: [...arraySemOficinaAntiga, novaOficina] } 
     });
   }
 
-  async finalizarOficina(idCustomizado: string, setor: string, tipoCausa: string, solucao: string, tecnico: string) {
+  async finalizarOficina(idCustomizado: string, setorId: string, tipoCausa: string, solucao: string, tecnico: string) {
     const os = await prisma.ordemServico.findUnique({ where: { idCustomizado } });
     if (!os) throw new Error("OS não encontrada.");
 
     const setorOsAtualizado = (os.setorOs as any[]).map(s => {
-      if (s.setor === setor) {
-        return { ...s, status: 'concluido', tipoCausa, solucaoTecnico: solucao, tecnicoResponsavel: tecnico, tempoManutencao: this.calcularDiferencaTempo(s.dataInicioManutencao) };
+      if (s.id === setorId) {
+        return { 
+          ...s, 
+          status: 'concluido', 
+          tipoCausa, 
+          solucaoTecnico: solucao, 
+          tecnicoResponsavel: tecnico, 
+          tempoManutencao: this.calcularDiferencaTempo(s.dataInicioManutencao) 
+        };
       }
       return s;
     });

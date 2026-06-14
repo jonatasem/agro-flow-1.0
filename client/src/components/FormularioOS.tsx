@@ -26,7 +26,6 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const equipamentosZilor = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
   const frentesZilor = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
 
-  // 📝 Gerencia o preenchimento automático baseado na estrutura de sub-documentos
   useEffect(() => {
     if (idEmEdicao) {
       const os = ordens.find(o => o.idCustomizado === idEmEdicao);
@@ -46,57 +45,54 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
       }
     } else if (usuario) {
       setCriador(`${usuario.matricula} - ${usuario.nome}`);
+      setPrefixo('');
+      setOperador('');
+      setFrente('');
+      setAtividade('');
+      setUsinaSelecionada('');
+      setSetorSelecionado('');
+      setQru('');
     }
   }, [idEmEdicao, ordens, usuario]);
 
-  // 🥇 Aplicando o hook de busca por proximidade estrita
   const frotasSugestao = useBuscaProxima(frotasCadastradas, prefixo, 'frota', 5);
   const operadoresSugestao = useBuscaProxima(operadoresCadastrados, operador, 'codigo', 5);
 
   const onSubmitForm = handleSubmit(async () => {
-  const cityFinal = usinaSelecionada || 'Geral Zilor';
-  const agora = new Date();
-  
-  // Captura de data e hora local do sistema de forma limpa
-  const dataString = agora.toLocaleDateString('pt-BR'); // Retorna DD/MM/AAAA
-  const horaString = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const cityFinal = usinaSelecionada || 'Geral Zilor';
+    const agora = new Date();
+    
+    const dataString = agora.toLocaleDateString('pt-BR');
+    const horaString = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  // 1. Montagem do payload rigorosamente alinhado com o validador do Backend
-  const payloadForm: Partial<OrdemServicoAgro> = {
-    prefixoTrator: prefixo.trim(),
-    idOperador: operador.trim(),
-    frente: frente.trim(),
-    atividade: atividade.trim(),
-    usinaBase: cityFinal,
-  };
+    const payloadForm: Partial<OrdemServicoAgro> = {
+      prefixoTrator: prefixo.trim(),
+      idOperador: operador.trim(),
+      frente: frente.trim(),
+      atividade: atividade.trim(),
+      usinaBase: cityFinal,
+    };
 
-  if (idEmEdicao) {
-    // 2. Fluxo de Edição: Mantém o histórico existente intacto
-    const osOriginal = ordens.find(o => o.idCustomizado === idEmEdicao);
-    if (osOriginal && osOriginal.setorOs && osOriginal.setorOs.length > 0) {
-      const setoresAtualizados = [...osOriginal.setorOs];
-      setoresAtualizados[0] = {
-        ...setoresAtualizados[0],
-        qruDescricao: qru.trim()
-      };
-      payloadForm.setorOs = setoresAtualizados;
+    if (idEmEdicao) {
+      payloadForm.setorOs = [
+        {
+          qruDescricao: qru.trim()
+        }
+      ] as any;
+    } else {
+      payloadForm.setorOs = [
+        {
+          setor: setorSelecionado as OrdemServicoAgro['setorOs'][number]['setor'],
+          status: 'aguardando_manutencao',
+          qruDescricao: qru.trim(),
+          criadoPor: criador.trim(),
+          dataCriacao: dataString,
+          horaCriacao: horaString,
+          solucaoTecnico: ''
+        }
+      ];
     }
-  } else {
-    // 3. Fluxo de Criação: Nova OS com o array inicial exigido pelo Backend
-    payloadForm.setorOs = [
-      {
-        setor: setorSelecionado as OrdemServicoAgro['setorOs'][number]['setor'],
-        status: 'aguardando_manutencao',
-        qruDescricao: qru.trim(),
-        criadoPor: criador.trim(),
-        dataCriacao: dataString, // Gravando como String DD/MM/AAAA puro
-        horaCriacao: horaString, // Gravando como String HH:MM puro
-        solucaoTecnico: ''
-      }
-    ];
-  }
 
-    // 4. Dispara para a função salvarOS do ConteudoApp
     await onSalvar(payloadForm);
   });
 
@@ -234,7 +230,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
 
         <div>
           <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Descrição do QRU *</label>
-          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problema relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50 text-sm" />
+          <textarea required value={qru} onChange={e => setQru(e.target.value)} placeholder="Descreva o problem relatado..." rows={3} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none resize-none focus:border-green-500/50 text-sm" />
         </div>
 
         <div className="flex justify-end gap-3 pt-2">

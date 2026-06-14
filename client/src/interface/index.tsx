@@ -10,8 +10,10 @@ export interface Equipamento {
   modelo: string;
 }
 
-// Sub-documento que representa o estado isolado de cada oficina
+// 🎯 Atualizado: Adicionado id único para cada registro de oficina na array concorrente
 export interface AtendimentoSetor {
+  id?: string; // ID único (UUID) gerado para o Kanban cirúrgico
+  _id?: string; // Fallback para compatibilidade direta com a tipagem do MongoDB se necessário
   setor: 'Agricultura de Precisão' | 'Elétrica' | 'Mecânica' | 'Borracharia';
   status: 'aguardando_manutencao' | 'em_manutencao' | 'concluido';
   qruDescricao: string;
@@ -25,7 +27,6 @@ export interface AtendimentoSetor {
   tecnicoResponsavel?: string;
 }
 
-// Estrutura principal da Ordem de Serviço Agrícola
 export interface OrdemServicoAgro {
   id: string;
   idCustomizado: string;
@@ -40,7 +41,6 @@ export interface OrdemServicoAgro {
   setorOs: AtendimentoSetor[];
 }
 
-// Props das Telas e Componentes do Ecossistema
 export interface TelaHistoricoProps {
   ordens: OrdemServicoAgro[];
 }

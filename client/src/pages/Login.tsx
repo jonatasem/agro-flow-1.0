@@ -17,7 +17,6 @@ export default function Login() {
       return;
     }
 
-    // O login do AuthContext agora usa o Axios apontando para a rota certa
     const sucesso = await login(matricula.trim());
     
     if (!sucesso) {
@@ -29,7 +28,6 @@ export default function Login() {
     <div className="min-h-screen bg-agro-dark flex items-center justify-center p-4">
       <div className="w-full max-w-sm bg-[#181b26] border border-agro-border rounded-2xl p-8 shadow-2xl text-xs">
         
-        {/* Topo do Card */}
         <div className="text-center mb-6 flex flex-col items-center">
           <div className="w-12 h-12 bg-green-500/10 border border-green-500/20 text-green-400 rounded-full flex items-center justify-center mb-3 shadow-lg shadow-green-500/5">
             <Tractor size={24} />
@@ -42,7 +40,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Formulário */}
         <form onSubmit={handleLoginSubmit} className="space-y-4">
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5">
@@ -59,7 +56,6 @@ export default function Login() {
             />
           </div>
 
-          {/* Alerta de Erro */}
           {erro && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-xl flex items-center justify-center gap-2 font-medium animate-fadeIn">
               <ShieldAlert size={16} className="shrink-0" />
@@ -67,7 +63,6 @@ export default function Login() {
             </div>
           )}
 
-          {/* Botão de Entrada */}
           <button
             type="submit"
             disabled={isSubmitting}

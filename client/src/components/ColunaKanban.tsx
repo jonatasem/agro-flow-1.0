@@ -3,7 +3,6 @@ import { Edit3, Trash2, CheckCircle2, AlertTriangle, Clock, MapPin, User, Shield
 import { formatarDataBR } from '../utils/date.js';
 import { useState, useEffect, useMemo } from 'react';
 
-// Sub-componente isolado para gerenciar o cronômetro rodando segundo a segundo
 function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
   const [tempoPassado, setTempoPassado] = useState('00:00:00');
 
@@ -11,7 +10,6 @@ function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
     if (!dataInicio) return;
 
     const calcularDiferenca = () => {
-      // Cria a data sintonizando o fuso do ISO String vindo do MongoDB
       const inicio = new Date(dataInicio).getTime();
       const agora = new Date().getTime();
       const diferenca = agora - inicio;
@@ -48,14 +46,13 @@ function CardCronometro({ dataInicio }: { dataInicio: string | undefined }) {
 export default function ColunaKanban({ 
   titulo, 
   status, 
-  setorAtivo, // Recebe qual oficina o monitor do COA está filtrando no momento
+  setorAtivo, 
   ordens, 
   onSelecionarCard, 
   onEditar, 
   onExcluir 
 }: ColunaKanbanProps) {
 
-  // Filtragem Concorrente: Filtra as OSs que possuem o setor ativo e cujo status interno corresponda a esta coluna
   const ordensFiltradas = useMemo(() => {
     return ordens.filter(os => {
       const subAtendimento = os.setorOs.find(s => s.setor === setorAtivo);
@@ -66,7 +63,6 @@ export default function ColunaKanban({
   return (
     <div className="bg-[#181b26] p-4 rounded-2xl border border-agro-border/50 flex flex-col min-h-125">
       
-      {/* Cabeçalho da Coluna */}
       <h3 className="font-bold text-xs uppercase text-slate-400 mb-4 tracking-wider flex justify-between items-center shrink-0">
         <span>{titulo}</span>
         <span className="bg-agro-dark px-2.5 py-0.5 rounded-full text-slate-300 font-bold text-[11px]">
@@ -74,11 +70,9 @@ export default function ColunaKanban({
         </span>
       </h3>
 
-      {/* Container de Rolagem dos Cards */}
       <div className="space-y-3 flex-1 overflow-y-auto max-h-[75vh] pr-1 custom-scrollbar">
         {ordensFiltradas.map(os => {
-          // Extrai o sub-atendimento específico do setor sob visualização
-          const oficinaDoCard = os.setorOs.find(s => s.setor === setorAtivo)!;
+          const oficinaDoCard = os.setorOs.find(s => s.setor === setorAtivo);
           
           const temSolucao = oficinaDoCard?.solucaoTecnico && oficinaDoCard.solucaoTecnico.trim() !== '';
           const isConcluido = oficinaDoCard?.status === 'concluido';
@@ -90,7 +84,6 @@ export default function ColunaKanban({
               className="bg-agro-card border border-agro-border p-4 rounded-xl cursor-pointer hover:border-green-500/30 transition-all duration-200 group relative flex flex-col gap-2.5"
             >
               
-              {/* Topo do Card: Identificação Visual */}
               <div className="flex justify-between items-center text-[11px]">
                 <span className="font-black text-xs bg-green-500/10 text-green-400 px-2 py-0.5 rounded-lg border border-green-500/20">
                   🚜 Frota {os.prefixoTrator}
@@ -100,7 +93,6 @@ export default function ColunaKanban({
                 </span>
               </div>
 
-              {/* SEÇÃO DINÂMICA DE CRONÔMETRO / TEMPO FINALIZADO */}
               {oficinaDoCard?.status === 'em_manutencao' && oficinaDoCard.dataInicioManutencao && (
                 <CardCronometro dataInicio={oficinaDoCard.dataInicioManutencao} />
               )}
@@ -111,7 +103,6 @@ export default function ColunaKanban({
                 </div>
               )}
 
-              {/* Informações da Operação */}
               <div className="space-y-1.5 text-[11px] text-slate-300">
                 <div className="flex items-center gap-1.5">
                   <ShieldAlert size={12} className="text-slate-500 shrink-0" />
@@ -130,7 +121,6 @@ export default function ColunaKanban({
                 </div>
               </div>
 
-              {/* Caixa de Texto Central (Exibe o QRU ou a Solução Técnica da Oficina Atual) */}
               <div className="bg-agro-dark/50 p-2.5 rounded-xl border border-agro-border/30 text-[11px] leading-relaxed">
                 {temSolucao ? (
                   <div className="text-emerald-400 font-medium flex items-start gap-1.5">
@@ -145,7 +135,6 @@ export default function ColunaKanban({
                 )}
               </div>
 
-              {/* Indicadores de Abertura do Sub-atendimento */}
               <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-500 font-medium border-t border-dashed border-agro-border/40 pt-2">
                 <div className="flex items-center gap-1">
                   <Clock size={11} />
@@ -157,13 +146,11 @@ export default function ColunaKanban({
                 </div>
               </div>
 
-              {/* Rodapé Dinâmico: Ações e Autoria */}
               <div className="mt-1 pt-2 border-t border-agro-border/40 flex justify-between items-center gap-2 opacity-30 group-hover:opacity-100 transition-opacity duration-200">
                 <span className="text-[10px] text-slate-500 font-medium truncate max-w-[55%]">
                   Por: {oficinaDoCard?.criadoPor || 'COA'}
                 </span>
                 
-                {/* Gerenciador de Trancamento de Ações */}
                 <div className="flex items-center gap-3 shrink-0">
                   {isConcluido ? (
                     <div className="text-slate-500 flex items-center gap-1 text-[10px] font-bold select-none bg-agro-dark border border-agro-border px-2 py-0.5 rounded-md">
@@ -195,4 +182,3 @@ export default function ColunaKanban({
     </div>
   );
 }
-

@@ -4,13 +4,6 @@ interface OpcaoBusca {
   [key: string]: any;
 }
 
-/**
- * Hook para filtrar e ordenar uma lista baseado no input do usuário por proximidade estrita.
- * @param lista Coleção de dados vinda do banco mestre
- * @param termoDigitado O estado do input atual
- * @param chaveFiltro A propriedade do objeto usada para a busca (ex: 'frota' ou 'codigo')
- * @param limite Quantidade máxima de sugestões no datalist (padrão: 5)
- */
 export function useBuscaProxima<T extends OpcaoBusca>(
   lista: T[],
   termoDigitado: string,
@@ -18,18 +11,15 @@ export function useBuscaProxima<T extends OpcaoBusca>(
   limite: number = 5
 ) {
   return useMemo(() => {
-    // Garante que a lista seja um array válido antes de processar
     const listaValida = Array.isArray(lista) ? lista : [];
     const busca = termoDigitado.trim().toLowerCase();
 
     if (!busca) {
-      // Se não digitou nada, retorna os primeiros elementos da lista até o limite
       return listaValida.slice(0, limite);
     }
 
     return listaValida
       .filter(item => {
-        // 🛡️ Segurança: Trata o valor se o campo for nulo, nulo implícito ou indefinido no banco
         if (!item || item[chaveFiltro] === undefined || item[chaveFiltro] === null) return false;
         
         const valorCampo = String(item[chaveFiltro]).toLowerCase();
@@ -39,14 +29,12 @@ export function useBuscaProxima<T extends OpcaoBusca>(
         const valorA = String(a[chaveFiltro] ?? '').toLowerCase();
         const valorB = String(b[chaveFiltro] ?? '').toLowerCase();
 
-        // 🥇 Regra de ouro: Quem começa com o termo digitado vai pro topo
         const aComecaCom = valorA.startsWith(busca);
         const bComecaCom = valorB.startsWith(busca);
 
         if (aComecaCom && !bComecaCom) return -1;
         if (!aComecaCom && bComecaCom) return 1;
 
-        // 🥈 Se ambos começam ou ambos contêm no meio, ordena pelo menor comprimento do termo
         return valorA.length - valorB.length || valorA.localeCompare(valorB);
       })
       .slice(0, limite);

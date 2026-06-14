@@ -27,7 +27,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const expiracao = localStorage.getItem('agro_os_exp');
 
     if (tokenSalvo && usuarioSalvo && expiracao) {
-      // Verifica se o tempo atual ainda é menor que o timestamp de expiração salvo
       if (Date.now() < Number(expiracao)) {
         setToken(tokenSalvo);
         setUsuario(JSON.parse(usuarioSalvo));
@@ -51,7 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.post('/autorizados', { matricula });
       const dados = response.data; 
       
-      // Ajustado para 8 horas (8 * 60 * 60 * 1000) para alinhar perfeitamente com a validade do JWT do Backend
       const tempoExpiracao = Date.now() + 8 * 60 * 60 * 1000;
 
       localStorage.setItem('agro_os_token', dados.token);
@@ -69,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ usuario, token, login, logout: efetuarLogout, carregando }}>
-      {!carregando && children}
+      {children}
     </AuthContext.Provider>
   );
 }

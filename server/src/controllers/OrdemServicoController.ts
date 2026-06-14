@@ -44,12 +44,11 @@ export class OrdemServicoController {
     }
   }
 
-  // CRIA NOVA ORDEM (Lógica de unificação gerenciada diretamente no Service)
+  // CRIA NOVA ORDEM
   async createOrdem(req: Request, res: Response) {
     try {
-      const { prefixoTrator, idOperador, usinaBase, frente, atividade, setorOs } = req.body;
+      const { prefixoTrator, idOperador, setorOs } = req.body;
       
-      // 1. Validação básica de payload estrutural obrigatório
       if (!prefixoTrator || !idOperador || !setorOs || setorOs.length === 0) {
         return res.status(400).json({ 
           error: 'Campos obrigatórios ausentes.', 
@@ -57,7 +56,6 @@ export class OrdemServicoController {
         });
       }
       
-      // 2. O service decide autonomamente se gera um registro novo ou adiciona no array ativo
       const resultadoOS = await ordemService.criar(req.body);
       return res.status(201).json(resultadoOS);
     } catch (error: any) {
@@ -65,52 +63,79 @@ export class OrdemServicoController {
     }
   }
 
-  // ATUALIZA CABEÇALHO
+  // ATUALIZA CABEÇALHO CORRIGIDO
   async updateOrdem(req: Request, res: Response) {
     try {
-      const { id } = req.params; 
-      const osAtualizada = await ordemService.atualizar(String(id), req.body);
+      const idCustomizado = req.params.idCustomizado || req.params.id; 
+      const osAtualizada = await ordemService.atualizar(String(idCustomizado), req.body);
       return res.status(200).json(osAtualizada);
     } catch (error: any) {
       return res.status(400).json({ error: 'Erro ao atualizar O.S.', details: error.message });
     }
   }
 
-  // AVANÇA STATUS SETOR
+  // AVANÇA STATUS SETOR (Atualizado para utilizar o ID único da oficina)
   async avancarStatusSetor(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const { setor, status, solucaoTecnico, tipoCausa } = req.body;
+      const idCustomizado = req.params.idCustomizado || req.params.id;
+      const { setorId, status, solucaoTecnico, tipoCausa } = req.body;
 
-      if (!id || !setor || !status) {
-        return res.status(400).json({ error: 'Parâmetros de setor/status obrigatórios.' });
+      if (!idCustomizado || !setorId || !status) {
+        return res.status(400).json({ error: 'Campos idCustomizado, setorId e status são obrigatórios.' });
       }
 
-      const osAtualizada = await ordemService.atualizarStatusOficina(String(id), setor, status, solucaoTecnico, tipoCausa);
+      const osAtualizada = await ordemService.atualizarStatusOficina(
+        String(idCustomizado), 
+        String(setorId), 
+        status, 
+        solucaoTecnico, 
+        tipoCausa
+      );
       return res.status(200).json(osAtualizada);
     } catch (error: any) {
       return res.status(400).json({ error: 'Erro ao avançar status', details: error.message });
     }
   }
 
-  // TRANSFERE SETOR
+  // TRANSFERE SETOR (Corrigido para sanar o bug de duplicação usando o ID único)
   async transferirSetor(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const { setorOrigem, setorDestino } = req.body;
-      const osAtualizada = await ordemService.injetarNovaOficina(String(id), setorOrigem, setorDestino);
+      const idCustomizado = req.params.idCustomizado || req.params.id;
+      const { setorId, setorDestino } = req.body;
+
+      if (!idCustomizado || !setorId || !setorDestino) {
+        return res.status(400).json({ error: 'Campos idCustomizado, setorId e setorDestino são obrigatórios.' });
+      }
+
+      // O service vai usar o setorId para encontrar a oficina de origem exata, mudar o status dela para "concluido" (ou histórico) e abrir o novo setor de destino.
+      const osAtualizada = await ordemService.injetarNovaOficina(
+        String(idCustomizado), 
+        String(setorId), 
+        setorDestino
+      );
       return res.status(200).json(osAtualizada);
     } catch (error: any) {
       return res.status(400).json({ error: 'Erro na transferência', details: error.message });
     }
   }
 
-  // BAIXA FINAL
+  // BAIXA FINAL (Atualizado para utilizar o ID único da oficina)
   async darBaixaFinalSetor(req: Request, res: Response) {
     try {
-      const { id } = req.params;
-      const { setor, tipoCausa, solucaoTecnico, tecnicoResponsavel } = req.body;
-      const osAtualizada = await ordemService.finalizarOficina(String(id), setor, tipoCausa, solucaoTecnico, tecnicoResponsavel);
+      const idCustomizado = req.params.idCustomizado || req.params.id;
+      const { setorId, tipoCausa, solucaoTecnico, tecnicoResponsavel } = req.body;
+
+      if (!idCustomizado || !setorId) {
+        return res.status(400).json({ error: 'Campos idCustomizado e setorId são obrigatórios.' });
+      }
+
+      const osAtualizada = await ordemService.finalizarOficina(
+        String(idCustomizado), 
+        String(setorId), 
+        tipoCausa, 
+        solucaoTecnico, 
+        tecnicoResponsavel
+      );
       return res.status(200).json(osAtualizada);
     } catch (error: any) {
       return res.status(400).json({ error: 'Erro ao dar baixa', details: error.message });
@@ -120,7 +145,8 @@ export class OrdemServicoController {
   // DELETA
   async deleteOrdem(req: Request, res: Response) {
     try {
-      await ordemService.eliminar(String(req.params.id));
+      const idCustomizado = req.params.idCustomizado || req.params.id;
+      await ordemService.eliminar(String(idCustomizado));
       return res.status(200).json({ message: "Removido com sucesso." });
     } catch (error: any) {
       return res.status(400).json({ error: 'Erro ao deletar', details: error.message });

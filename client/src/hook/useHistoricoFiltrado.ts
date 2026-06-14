@@ -31,12 +31,10 @@ export function useHistoricoFiltrado(ordens: OrdemServicoAgro[]) {
 
   const analiseMetricas = useMemo(() => {
     let hardware = 0, operacional = 0, sinal = 0;
-    // Aqui fazemos a contagem real baseada em setores
     let totalSetores = 0;
 
     dadosFiltrados.forEach(os => {
       os.setorOs.forEach(s => {
-        // Se o filtro de setor estiver ativo, só conta os que batem com o filtro
         if (setor === 'TODOS' || s.setor === setor) {
           totalSetores++;
           
@@ -64,7 +62,7 @@ export function useHistoricoFiltrado(ordens: OrdemServicoAgro[]) {
 
     return {
       dadosGrafico: dadosPorcentagem,
-      totalChamados: totalSetores, // Agora exibe o número de setores (tarefas)
+      totalChamados: totalSetores,
       totalConcluidos,
       erroOperacionalQtd: operacional,
       porcentagemOperacional: totalConcluidos > 0 ? ((operacional / totalConcluidos) * 100).toFixed(1) : '0'

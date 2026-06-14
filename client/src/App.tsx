@@ -1,19 +1,19 @@
 import { useState, useMemo, useEffect } from 'react';
-
-// API Real com Axios
 import api from './services/api';
-
-// interface (Mantendo a extensão estrita exigida pelo tsconfig)
 import type { OrdemServicoAgro } from './interface/index.js';
-
-// Importação do custom hook e contexto de autenticação
 import { useDadosMestre } from './hook/useDadosMestre.js';
 import { AuthProvider, useAuth } from './context/AuthContext.js';
 
-// icons
-import { RefreshCw, PlusCircle, LayoutDashboard, SlidersHorizontal, History, MapPin, LogOut } from 'lucide-react';
+import { 
+  RefreshCw, 
+  PlusCircle, 
+  LayoutDashboard, 
+  SlidersHorizontal, 
+  History, 
+  MapPin, 
+  LogOut 
+} from 'lucide-react';
 
-// components
 import FormularioOS from './components/FormularioOS.js';
 import ColunaKanban from './components/ColunaKanban.js';
 import ModalDetalhes from './components/ModalDetalhes.js';
@@ -25,7 +25,6 @@ function ConteudoApp() {
   const { usuario, token, logout } = useAuth();
 
   const [ordens, setOrdens] = useState<OrdemServicoAgro[]>([]);
-  
   const [abaAtiva, setAbaAtiva] = useState<'dashboard' | 'criar' | 'historico' | 'cadastro_operadores'>('dashboard');
   const [osSelecionada, setOsSelecionada] = useState<OrdemServicoAgro | null>(null);
   const [idEmEdicao, setIdEmEdicao] = useState<string | null>(null);
@@ -36,7 +35,6 @@ function ConteudoApp() {
   const [cidadeAtiva, setCidadeAtiva] = useState<string>('Salto Botelho');
   const [carregando, setCarregando] = useState<boolean>(true);
 
-  // 📡 Dados Mestre carregados diretamente do hook real do seu banco
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
 
   const setoresDisponiveis: OrdemServicoAgro['setorOs'][number]['setor'][] = [
@@ -86,13 +84,14 @@ function ConteudoApp() {
 
     inicializarPainel();
   }, [usuario]);
-    // 📂 Filtragem Inteligente baseada no Estado das Oficinas concorrentes
+
   const ordensFiltradasKanban = useMemo(() => {
     return ordens.filter(os => {
       const atendeFiltroFrota = filtroFrota === '' || os.prefixoTrator.includes(filtroFrota);
       const atendeFiltroOperador = filtroOperador === '' || os.idOperador.includes(filtroOperador);
       const atendeUsina = os.usinaBase?.toLowerCase().trim() === cidadeAtiva.toLowerCase().trim();
       
+      // Filtra para garantir que exibe a OS no Kanban se ela tiver o setor ativo e o status do setor bater com a coluna
       const possuiSetorAtivo = os.setorOs.some(s => s.setor === setorAtivo);
 
       return atendeFiltroFrota && atendeFiltroOperador && atendeUsina && possuiSetorAtivo;
@@ -101,18 +100,21 @@ function ConteudoApp() {
   
   const salvarOS = async (dadosForm: Partial<OrdemServicoAgro>) => {
     try {
+      setCarregando(true);
       if (idEmEdicao) {
-        const resposta = await api.put(`/ordens/${idEmEdicao}`, dadosForm);
-        setOrdens(prev => prev.map(o => o.idCustomizado === idEmEdicao ? resposta.data : o));
+        await api.put(`/ordens/${idEmEdicao}`, dadosForm);
         setIdEmEdicao(null);
       } else {
-        const resposta = await api.post('/ordens', dadosForm);
-        setOrdens(prev => [resposta.data, ...prev]);
+        await api.post('/ordens', dadosForm);
       }
+      
+      await carregarOrdens();
       setAbaAtiva('dashboard');
     } catch (error: any) {
-      console.error("Erro completo do Axios:", error);
-      alert("Erro ao salvar ordem de serviço.");
+      console.error("Erro completo do Axios ao processar O.S.:", error);
+      alert(error.response?.data?.error || "Erro ao salvar ordem de serviço no MongoDB.");
+    } finally {
+      setCarregando(false);
     }
   };
 
@@ -132,6 +134,11 @@ function ConteudoApp() {
     return <Login />;
   }
 
+  // Identifica dinamicamente os dados da oficina ativa dentro da O.S. selecionada
+  // Suporta estruturas vindas do Prisma como .id ou ._id
+  const oficinaAtivaNaOS = osSelecionada?.setorOs.find(s => s.setor === setorAtivo);
+  const setorIdUnico = oficinaAtivaNaOS?.id || (oficinaAtivaNaOS as any)?._id;
+
   return (
     <div className="min-h-screen bg-agro-dark text-slate-100 font-sans">
       <nav className="bg-[#181b26] border-b border-agro-border px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -150,17 +157,29 @@ function ConteudoApp() {
 
         <div className="flex items-center gap-3">
           <div className="flex bg-agro-dark p-1 rounded-xl border border-agro-border">
-            <button onClick={() => setAbaAtiva('dashboard')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'dashboard' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
+            <button 
+              onClick={() => setAbaAtiva('dashboard')} 
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'dashboard' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            >
               <LayoutDashboard size={14} /> Monitor Realtime
             </button>
-            <button onClick={() => setAbaAtiva('historico')} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'historico' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
+            <button 
+              onClick={() => setAbaAtiva('historico')} 
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'historico' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            >
               <History size={14} /> Histórico Analítico
             </button>
-            <button onClick={() => { setIdEmEdicao(null); setAbaAtiva('criar'); }} className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'criar' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}>
+            <button 
+              onClick={() => { setIdEmEdicao(null); setAbaAtiva('criar'); }} 
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition cursor-pointer ${abaAtiva === 'criar' ? 'bg-green-500 text-slate-950' : 'text-slate-400 hover:text-white'}`}
+            >
               <PlusCircle size={14} /> Nova OS
             </button>
           </div>
-          <button onClick={logout} className="p-2 text-slate-400 hover:text-red-400 bg-agro-card border border-agro-border hover:border-red-500/30 rounded-xl transition cursor-pointer">
+          <button 
+            onClick={logout} 
+            className="p-2 text-slate-400 hover:text-red-400 bg-agro-card border border-agro-border hover:border-red-500/30 rounded-xl transition cursor-pointer"
+          >
             <LogOut size={15} />
           </button>
         </div>
@@ -172,20 +191,39 @@ function ConteudoApp() {
             <section className="bg-[#181b26] border border-agro-border/80 rounded-2xl p-4 mb-4 grid grid-cols-1 sm:grid-cols-3 gap-4 items-end text-xs">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Frota</label>
-                <input type="text" list="filtro-frotas-db" placeholder="Ex: 850002" value={filtroFrota} onChange={e => setFiltroFrota(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" />
+                <input 
+                  type="text" 
+                  list="filtro-frotas-db" 
+                  placeholder="Ex: 850002" 
+                  value={filtroFrota} 
+                  onChange={e => setFiltroFrota(e.target.value)} 
+                  className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" 
+                />
                 <datalist id="filtro-frotas-db">
                   {frotasCadastradas.slice(0, 5).map(equip => <option key={equip.frota} value={equip.frota}>{equip.modelo}</option>)}
                 </datalist>
               </div>
-                            <div>
+              <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Filtrar por Operador</label>
-                <input type="text" list="filtro-operadores-db" placeholder="Ex: 23805" value={filtroOperador} onChange={e => setFiltroOperador(e.target.value)} className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" />
+                <input 
+                  type="text" 
+                  list="filtro-operadores-db" 
+                  placeholder="Ex: 23805" 
+                  value={filtroOperador} 
+                  onChange={e => setFiltroOperador(e.target.value)} 
+                  className="w-full bg-agro-dark border border-agro-border rounded-xl p-2 text-slate-200 outline-none focus:border-green-500/30" 
+                />
                 <datalist id="filtro-operadores-db">
                   {operadoresCadastrados.slice(0, 5).map(op => <option key={op.codigo} value={op.codigo}>{op.nome}</option>)}
                 </datalist>
               </div>
               
-              <button onClick={() => { setFiltroFrota(''); setFiltroOperador(''); }} className="bg-agro-card hover:bg-agro-border text-slate-300 py-2 rounded-xl font-bold border border-agro-border flex items-center justify-center gap-1 cursor-pointer"><RefreshCw size={12}/> Limpar Busca</button>
+              <button 
+                onClick={() => { setFiltroFrota(''); setFiltroOperador(''); }} 
+                className="bg-agro-card hover:bg-agro-border text-slate-300 py-2 rounded-xl font-bold border border-agro-border flex items-center justify-center gap-1 cursor-pointer"
+              >
+                <RefreshCw size={12}/> Limpar Busca
+              </button>
             </section>
 
             {carregando ? <LoadingStatus /> : (
@@ -195,7 +233,11 @@ function ConteudoApp() {
                   {cidadesDisponiveis.map(cidade => {
                     const qtdCidade = ordens.filter(os => os.usinaBase?.toLowerCase().trim() === cidade.toLowerCase().trim() && os.setorOs.some(s => s.status !== 'concluido')).length;
                     return (
-                      <button key={cidade} onClick={() => setCidadeAtiva(cidade)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${cidadeAtiva === cidade ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
+                      <button 
+                        key={cidade} 
+                        onClick={() => setCidadeAtiva(cidade)} 
+                        className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${cidadeAtiva === cidade ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}
+                      >
                         <span>🏢 {cidade}</span> {qtdCidade > 0 && <span className="text-[10px] bg-green-500 text-slate-950 px-1.5 py-0.2 rounded-md font-black">{qtdCidade}</span>}
                       </button>
                     );
@@ -205,7 +247,11 @@ function ConteudoApp() {
                 <section className="bg-[#181b26] border border-agro-border/40 p-2 rounded-2xl mb-6 flex flex-wrap gap-2 items-center">
                   <span className="text-[10px] font-bold uppercase text-slate-500 px-2 flex items-center gap-1"><SlidersHorizontal size={12} /> Oficina sob Monitoria:</span>
                   {setoresDisponiveis.map(setor => (
-                    <button key={setor} onClick={() => setSetorAtivo(setor)} className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}>
+                    <button 
+                      key={setor} 
+                      onClick={() => setSetorAtivo(setor)} 
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${setorAtivo === setor ? 'bg-green-500/10 text-green-400 border border-green-500/30' : 'bg-agro-dark text-slate-400 border border-agro-border hover:text-white'}`}
+                    >
                       {setor}
                     </button>
                   ))}
@@ -222,7 +268,7 @@ function ConteudoApp() {
         )}
 
         {abaAtiva === 'historico' && <TelaHistorico ordens={ordens} />}
-        {abaAtiva === 'criar' && <FormularioOS idEmEdicao={idEmEdicao} ordens={ordens} onSalvar={salvarOS} onCancelar={() => setAbaAtiva('dashboard')} />}
+        {abaAtiva === 'criar' && <FormularioOS idEmEdicao={idEmEdicao} ordens={ordens} onSalvar={salvarOS} onCancelar={() => { setIdEmEdicao(null); setAbaAtiva('dashboard'); }} />}
       </div>
 
       {osSelecionada && (
@@ -230,11 +276,12 @@ function ConteudoApp() {
           os={osSelecionada} 
           setorContexto={setorAtivo}
           onFechar={() => setOsSelecionada(null)} 
-          onTransferirSetor={async (idCustomizado, origem, destino) => {
+          // 🔄 Injeta o setorId garantindo isolamento total contra duplicações
+          onTransferirSetor={async (idCustomizado, _origem, destino) => {
+            if (!setorIdUnico) return alert("Erro: Identificador da oficina ativa não localizado.");
             try {
-              // Certifique-se de que a rota no backend espera exatamente esse ID
               await api.put(`/ordens/${idCustomizado}/transferir`, { 
-                setorOrigem: origem, 
+                setorId: setorIdUnico, 
                 setorDestino: destino 
               });
               await carregarOrdens();
@@ -243,13 +290,27 @@ function ConteudoApp() {
               console.error("Erro na transferência:", error);
             }
           }}
+          // ⏳ Avança o status do card de forma unitária no subdocumento
           onAvancarStatus={async (id, proxStatus, solucao, causa) => { 
-            await api.put(`/ordens/${id}/status`, { setor: setorAtivo, status: proxStatus, solucaoTecnico: solucao, tipoCausa: causa }); 
+            if (!setorIdUnico) return alert("Erro: Identificador da oficina ativa não localizado.");
+            await api.put(`/ordens/${id}/status`, { 
+              setorId: setorIdUnico, 
+              status: proxStatus, 
+              solucaoTecnico: solucao, 
+              tipoCausa: causa 
+            }); 
             await carregarOrdens();
             setOsSelecionada(null);
           }}
+          // ✅ Fecha a oficina ativa enviando o laudo técnico direto para o ID correspondente
           onDarBaixaFinal={async (id, laudo) => {
-            await api.put(`/ordens/${id}/baixa`, { setor: setorAtivo, tipoCausa: laudo.causa, solucaoTecnico: laudo.solucao, tecnicoResponsavel: usuario?.nome });
+            if (!setorIdUnico) return alert("Erro: Identificador da oficina ativa não localizado.");
+            await api.put(`/ordens/${id}/baixa`, { 
+              setorId: setorIdUnico, 
+              tipoCausa: laudo.causa, 
+              solucaoTecnico: laudo.solucao, 
+              tecnicoResponsavel: usuario?.nome 
+            });
             await carregarOrdens();
             setOsSelecionada(null);
           }}
@@ -259,4 +320,11 @@ function ConteudoApp() {
   );
 }
 
-export default function App() { return <AuthProvider><ConteudoApp /></AuthProvider>; }
+export default function App() { 
+  return (
+    <AuthProvider>
+      <ConteudoApp />
+    </AuthProvider>
+  ); 
+}
+

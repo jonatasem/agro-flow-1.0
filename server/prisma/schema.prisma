@@ -27,18 +27,19 @@ model Equipamento {
   ordensServico OrdemServico[]
 }
 
-// Sub-documento embutido (Array concorrente de oficinas)
+// 🛠️ Sub-documento embutido com IDENTIFICAÇÃO ÚNICA por Oficina
 type AtendimentoSetor {
-  setor                String // Agricultura de Precisão, Elétrica, Mecânica, Borracharia
+  id                   String   @default(uuid()) // <--- ID ÚNICO gerado automaticamente para cada oficina injetada
+  setor                String   // Agricultura de Precisão, Elétrica, Mecânica, Borracharia
   status               String   @default("aguardando_manutencao") // aguardando_manutencao, em_manutencao, concluido
   qruDescricao         String
   criadoPor            String
-  dataCriacao          String // DD/MM/YYYY
-  horaCriacao          String // HH:MM
-  dataInicioManutencao String? // Guardamos em string ISO para controle do cronômetro
-  tempoManutencao      String? // Tempo total decorrido (Ex: "00:45:12")
+  dataCriacao          String   // DD/MM/YYYY
+  horaCriacao          String   // HH:MM
+  dataInicioManutencao String?  // Guardamos em string ISO para controle do cronômetro
+  tempoManutencao      String?  // Tempo total decorrido (Ex: "00:45:12")
   solucaoTecnico       String   @default("")
-  tipoCausa            String? // Hardware (Defeito Real), Erro Operacional, Infraestrutura (Sinal)
+  tipoCausa            String?  // Hardware (Defeito Real), Erro Operacional, Infraestrutura (Sinal)
   tecnicoResponsavel   String?
 }
 
@@ -63,3 +64,4 @@ model OrdemServico {
   @@index([prefixoTrator])
   @@index([usinaBase])
 }
+

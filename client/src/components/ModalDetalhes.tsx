@@ -5,8 +5,9 @@ interface ModalDetalhesProps {
   os: OrdemServicoAgro;
   setorContexto: string;
   onFechar: () => void;
-  // CORRIGIDO: Assinatura atualizada para aceitar origem e destino
+  // 🎯 Atualizado: Agora espera receber apenas o setorDestino (o ID da oficina ativa já é controlado no escopo do App.tsx)
   onTransferirSetor: (idCustomizado: string, setorOrigem: string, setorDestino: string) => Promise<void>;
+  // 🎯 Atualizado: Removidos parâmetros de texto redundantes
   onAvancarStatus: (idCustomizado: string, proximoStatus: AtendimentoSetor['status'], solucaoParcial: string, causaDefinida: AtendimentoSetor['tipoCausa']) => Promise<void>;
   onDarBaixaFinal: (idCustomizado: string, dadosLaudo: { causa: Required<AtendimentoSetor>['tipoCausa']; solucao: string }) => Promise<void>;
 }
@@ -52,7 +53,7 @@ export default function ModalDetalhes({
         <div className="overflow-y-auto pr-1 space-y-4 flex-1 custom-scrollbar">
           
           <div className="bg-agro-dark/50 p-3 rounded-xl border border-agro-border text-slate-400">
-            <span className="text-[9px] uppercase font-bold text-amber-500 block mb-0.5">QRU (Os criada por {oficinaAtual?.criadoPor || 'COA'}):</span>
+            <span className="text-[9px] uppercase font-bold text-amber-500 block mb-0.5">QRU (OS criada por {oficinaAtual?.criadoPor || 'COA'}):</span>
             "{oficinaAtual?.qruDescricao || 'Aguardando avaliação técnica.'}"
           </div>
 
@@ -85,7 +86,6 @@ export default function ModalDetalhes({
               <div className="pt-2 space-y-2">
                 {setorFoiAlterado && (
                   <button 
-                    // CORRIGIDO: Chamada enviando origem e destino
                     onClick={async () => { await onTransferirSetor(os.idCustomizado, setorContexto, setorDestino); onFechar(); }} 
                     className="w-full bg-amber-600 hover:bg-amber-700 text-white p-2.5 rounded-xl font-bold transition flex items-center justify-center gap-1 cursor-pointer"
                   >
@@ -105,7 +105,7 @@ export default function ModalDetalhes({
                     onClick={async () => { await onDarBaixaFinal(os.idCustomizado, { causa, solucao }); onFechar(); }} 
                     className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-2.5 rounded-xl font-bold transition cursor-pointer"
                   >
-                    Dar Baixa nesta Os ✅
+                    Dar Baixa nesta OS ✅
                   </button>
                 )}
               </div>
