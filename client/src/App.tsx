@@ -230,10 +230,18 @@ function ConteudoApp() {
           os={osSelecionada} 
           setorContexto={setorAtivo}
           onFechar={() => setOsSelecionada(null)} 
-          onTransferirSetor={async (id, origem, destino) => {
-            await api.put(`/ordens/${id}/transferir`, { setorOrigem: origem, setorDestino: destino });
-            await carregarOrdens();
-            setOsSelecionada(null);
+          onTransferirSetor={async (idCustomizado, origem, destino) => {
+            try {
+              // Certifique-se de que a rota no backend espera exatamente esse ID
+              await api.put(`/ordens/${idCustomizado}/transferir`, { 
+                setorOrigem: origem, 
+                setorDestino: destino 
+              });
+              await carregarOrdens();
+              setOsSelecionada(null);
+            } catch (error) {
+              console.error("Erro na transferência:", error);
+            }
           }}
           onAvancarStatus={async (id, proxStatus, solucao, causa) => { 
             await api.put(`/ordens/${id}/status`, { setor: setorAtivo, status: proxStatus, solucaoTecnico: solucao, tipoCausa: causa }); 

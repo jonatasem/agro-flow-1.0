@@ -10,7 +10,7 @@ router.post('/autorizados', controller.loginAutorizados);
 router.post('/autorizados/cadastro', controller.cadastrarAutorizado);
 
 // ROTAS PROTEGIDAS (Dados Gerais e Cabeçalho)
-router.get('/ordens', autenticarToken, controller.getOrdens);
+router.get('/ordens', controller.getOrdens);
 router.post('/ordens', autenticarToken, controller.createOrdem);
 router.put('/ordens/:id', autenticarToken, controller.updateOrdem);
 router.delete('/ordens/:id', autenticarToken, controller.deleteOrdem);
