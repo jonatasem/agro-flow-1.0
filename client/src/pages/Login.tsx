@@ -33,7 +33,7 @@ export default function Login() {
             <Tractor size={24} />
           </div>
           <h2 className="text-md font-black text-white uppercase tracking-wider">
-            Zilor Core - Login
+            AgroFlow — Painel de Controle e Monitoramento de Ativos.
           </h2>
           <p className="text-slate-400 mt-1 text-[11px]">
             Insira seu código operacional autorizado para acessar.

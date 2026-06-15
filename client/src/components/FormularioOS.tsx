@@ -24,7 +24,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const cidadesZilor = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
   const SetoresZilor: OrdemServicoAgro['setorOs'][number]['setor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
   const equipamentosZilor = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
-  const frentesZilor = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
+  const frentesBase = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
 
   useEffect(() => {
     if (idEmEdicao) {
@@ -59,7 +59,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const operadoresSugestao = useBuscaProxima(operadoresCadastrados, operador, 'codigo', 5);
 
   const onSubmitForm = handleSubmit(async () => {
-    const cityFinal = usinaSelecionada || 'Geral Zilor';
+    const cityFinal = usinaSelecionada || 'Geral';
     const agora = new Date();
     
     const dataString = agora.toLocaleDateString('pt-BR');
@@ -170,7 +170,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
             <datalist id="lista-frentes-db">
-              {frentesZilor.map(f => (
+              {frentesBase.map(f => (
                 <option key={f} value={f} />
               ))}
             </datalist>

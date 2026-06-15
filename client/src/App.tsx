@@ -144,8 +144,8 @@ function ConteudoApp() {
       <nav className="bg-[#181b26] border-b border-agro-border px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-3">
           <div>
-            <span className="text-xl font-black text-white tracking-wider">ZILOR</span>
-            <span className="bg-green-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded ml-2">CORE OPERACIONAL</span>
+            <span className="text-xl font-black text-white tracking-wider">🚜 AgroFlow OS </span>
+            <span className="bg-green-500 text-slate-950 text-[10px] font-black px-1.5 py-0.5 rounded ml-2">Painel de Controle e Monitoramento de Ativos.</span>
           </div>
           <div className="hidden md:flex items-center gap-2 border-l border-slate-700 pl-3 text-xs text-slate-400">
             <span>Operador logado:</span>
