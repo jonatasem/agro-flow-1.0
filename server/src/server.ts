@@ -19,5 +19,5 @@ app.use(express.json());
 app.use('/api', ordemRoutes);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Zilor Core Operacional Backend rodando com sucesso na porta ${PORT}`);
+  console.log(`🚀 AgroFlow -  Painel de Controle e Monitoramento de Ativos rodando com sucesso na porta ${PORT}`);
 });

@@ -21,9 +21,9 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
   const { isSubmitting, handleSubmit } = useSubmit();
 
-  const cidadesZilor = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
-  const SetoresZilor: OrdemServicoAgro['setorOs'][number]['setor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
-  const equipamentosZilor = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
+  const cidadeCadastradas = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
+  const setoresCadastrados: OrdemServicoAgro['setorOs'][number]['setor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
+  const equipamentosCadastrados = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
   const frentesBase = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
 
   useEffect(() => {
@@ -188,7 +188,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50" 
             />
             <datalist id="lista-equipamentos-db">
-              {equipamentosZilor.map(eq => (
+              {equipamentosCadastrados.map(eq => (
                 <option key={eq} value={eq} />
               ))}
             </datalist>
@@ -205,7 +205,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold"
             >
               <option value="" disabled>Selecione a usina para este chamado...</option>
-              {cidadesZilor.map(c => (
+              {cidadeCadastradas.map(c => (
                 <option key={c} value={c}>🏢 {c}</option>
               ))}
             </select>
@@ -221,7 +221,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
               className="w-full bg-agro-dark border border-agro-border rounded-xl p-2.5 text-slate-200 outline-none focus:border-green-500/50 font-bold disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="" disabled>Selecione o setor inicial...</option>
-              {SetoresZilor.map(s => (
+              {setoresCadastrados.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>

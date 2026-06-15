@@ -34,7 +34,7 @@ export function useDadosMestre() {
         }
       } catch (error) {
         if (componenteAtivo) {
-          console.error("Erro ao carregar dados mestre globais Zilor:", error);
+          console.error("Erro ao carregar dados mestre globais:", error);
           setErro(error);
         }
       } finally {

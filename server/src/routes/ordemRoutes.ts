@@ -5,7 +5,7 @@ import { autenticarToken } from '../middlewares/authMiddleware.js';
 const router = Router();
 const controller = new OrdemServicoController();
 
-// 🔓 ROTAS PÚBLICAS (Login e Registro do Ecossistema Zilor)
+// 🔓 ROTAS PÚBLICAS (Login e Registro do Ecossistema)
 router.post('/autorizados', controller.loginAutorizados);
 router.post('/autorizados/cadastro', controller.cadastrarAutorizado);
 
@@ -21,7 +21,7 @@ router.put('/ordens/:id/status', autenticarToken, controller.avancarStatusSetor)
 router.put('/ordens/:id/transferir', autenticarToken, controller.transferirSetor);
 router.put('/ordens/:id/baixa', autenticarToken, controller.darBaixaFinalSetor);
 
-// 📊 DADOS MESTRE (Sincronização de Cadastros do Banco Zilor Atlas)
+// 📊 DADOS MESTRE (Sincronização de Cadastros do Banco Agro Atlas)
 router.get('/frotas-mestre', autenticarToken, controller.getFrotasCadastro);
 router.get('/operadores-mestre', autenticarToken, controller.getOperadoresCadastro);
 

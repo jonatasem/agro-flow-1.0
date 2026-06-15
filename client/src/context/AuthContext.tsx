@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsuario(dados.usuario);
       return true;
     } catch (error) {
-      console.error("Erro no login estratégico Zilor:", error);
+      console.error("Erro no login estratégico:", error);
       return false;
     }
   };

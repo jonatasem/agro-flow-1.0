@@ -64,7 +64,7 @@ function ConteudoApp() {
       const resposta = await api.get('/ordens');
       setOrdens(resposta.data);
     } catch (error) {
-      console.error("Erro ao conectar ao banco Zilor Atlas:", error);
+      console.error("Erro ao conectar ao banco agro Atlas:", error);
     }
   };
 

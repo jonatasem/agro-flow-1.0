@@ -135,7 +135,7 @@ export class OrdemServicoService {
         prefixoTrator: dados.prefixoTrator.trim(),
         idOperador: dados.idOperador.trim(),
         atividade: dados.atividade || 'Geral',
-        usinaBase: dados.usinaBase || 'Geral Zilor',
+        usinaBase: dados.usinaBase || 'Geral',
         frente: dados.frente || 'Frente Geral',
         dataCriacao: dataAtual,
         horaCriacao: horaAtual,
@@ -144,7 +144,7 @@ export class OrdemServicoService {
           setor: setorInicial.setor || 'Agricultura de Precisão',
           status: 'aguardando_manutencao',
           qruDescricao: setorInicial.qruDescricao || 'Sem descrição inicial.',
-          criadoPor: setorInicial.criadoPor || 'Zilor Core',
+          criadoPor: setorInicial.criadoPor || 'Não logado',
           dataCriacao: dataAtual,
           horaCriacao: horaAtual,
           solucaoTecnico: ''
