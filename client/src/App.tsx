@@ -45,10 +45,10 @@ function ConteudoApp() {
   ];
 
   const cidadesDisponiveis = [
-    'Salto Botelho',
-    'Quatá',
-    'São José',
-    'Barra Grande'
+    'São Paulo',
+    'Campinas',
+    'Adamantina',
+    'Lucélia'
   ];
 
   useEffect(() => {
