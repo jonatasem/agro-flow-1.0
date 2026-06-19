@@ -21,7 +21,7 @@ export default function FormularioOS({ idEmEdicao, ordens, onSalvar, onCancelar 
   const { frotasCadastradas, operadoresCadastrados } = useDadosMestre();
   const { isSubmitting, handleSubmit } = useSubmit();
 
-  const cidadeCadastradas = ['Salto Botelho', 'Quatá', 'São José', 'Barra Grande'];
+  const cidadeCadastradas = ["São Paulo", "Campinas", "Adamantina", "Lucélia"];
   const setoresCadastrados: OrdemServicoAgro['setorOs'][number]['setor'][] = ['Agricultura de Precisão', 'Elétrica', 'Mecânica', 'Borracharia'];
   const equipamentosCadastrados = ["Colhedora", "Transbordo", "Caminhão Canavieiro", "Caminhão Prancha", "Carretel", "Eletro/Moto Bomba", "Estação Meteorológica", "Plantadora", "Pluviômetro"];
   const frentesBase = ["Frente 1", "Frente 2", "Frente 3", "Frente 4", "Frente 92", "Frente 65", "Frente 66", "Frente 98"];
