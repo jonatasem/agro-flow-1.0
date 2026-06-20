@@ -98,8 +98,6 @@ export class OrdemServicoService {
       }
     });
 
-    // 🛑 Modificado: Se já existe uma OS aberta para o trator, não adicionamos outra oficina concorrente na array. 
-    // Nós barramos ou simplesmente atualizamos o setor ativo atual para o novo desejado.
     if (osAbertaExistente) {
       const setorDestino = setorInicial.setor || 'Agricultura de Precisão';
       const oficinaAtiva = (osAbertaExistente.setorOs as any[]).find((s: any) => s.status !== 'concluido');
@@ -108,7 +106,6 @@ export class OrdemServicoService {
         throw new Error(`O setor ${setorDestino} já está em atendimento ativo para este trator.`);
       }
 
-      // Se a intenção é mover de setor porque o trator está em outra oficina aberta, limpamos a array substituindo pela nova oficina informada
       const novaOficina: SetorOs = {
         id: uuidv4(),
         setor: setorDestino,
@@ -122,7 +119,7 @@ export class OrdemServicoService {
 
       return await prisma.ordemServico.update({ 
         where: { idCustomizado: osAbertaExistente.idCustomizado }, 
-        data: { setorOs: [novaOficina] } // 🔁 Mantém apenas uma única oficina ativa limpa
+        data: { setorOs: [novaOficina] } 
       });
     }
 
@@ -173,8 +170,7 @@ export class OrdemServicoService {
     return await prisma.ordemServico.update({ where: { idCustomizado }, data: { setorOs: setorOsAtualizado } });
   }
 
-  // 🔄 CORREÇÃO CIRÚRGICA: MUTAÇÃO PURA DE SETOR
-  // Remove totalmente o registro antigo para evitar acúmulo na array e impedir cards fantasmas.
+  // 🔄 TRANSFERÊNCIA PURA (Remove a antiga e adiciona a nova direto no array)
   async injetarNovaOficina(idCustomizado: string, setorId: string, setorDestino: string) {
     const os = await prisma.ordemServico.findUnique({ where: { idCustomizado } });
     if (!os) throw new Error("OS não encontrada.");
@@ -183,15 +179,15 @@ export class OrdemServicoService {
     const dataAtual = agora.toLocaleDateString('pt-BR');
     const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    // 1. Filtramos para REMOVER completamente a oficina antiga da array
+    // 1. Remove completamente o setor antigo do array para não deixar rasto nem histórico
     const arraySemOficinaAntiga = (os.setorOs as any[]).filter(s => s.id !== setorId);
 
-    // 2. Buscamos a oficina de origem apenas para manter o QRU / Descrição digitada originalmente
+    // 2. Procura a origem apenas para herdar o QRU/Descrição original
     const oficinaOrigem = (os.setorOs as any[]).find(s => s.id === setorId);
 
-    // 3. Montamos o novo setor que vai assumir o card na triagem do Kanban de destino
+    // 3. Cria a nova oficina/setor destino do zero
     const novaOficina: SetorOs = {
-      id: uuidv4(), // Novo ID único gerado para a oficina ativa
+      id: uuidv4(), 
       setor: setorDestino,
       status: 'aguardando_manutencao',
       qruDescricao: oficinaOrigem?.qruDescricao || "Transferido sem descrição",
@@ -201,7 +197,7 @@ export class OrdemServicoService {
       solucaoTecnico: ''
     };
 
-    // 4. Sobrescrevemos a propriedade no MongoDB deixando apenas a nova oficina ativa
+    // 4. Substitui e salva no banco de dados
     return await prisma.ordemServico.update({ 
       where: { idCustomizado }, 
       data: { setorOs: [...arraySemOficinaAntiga, novaOficina] } 
