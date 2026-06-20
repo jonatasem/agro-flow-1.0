@@ -1,9 +1,10 @@
 import { PrismaClient } from '@prisma/client';
+
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'ZILOR_SECRET_KEY';
+const JWT_SECRET = process.env.JWT_SECRET || '';
 
 interface SetorOs {
   id?: string;
@@ -85,6 +86,7 @@ export class OrdemServicoService {
     });
   }
 
+  // 1️⃣ ADICIONA NOVO SETOR SE JÁ EXISTIR OS ABERTA, CASO CONTRÁRIO CRIA NOVA OS
   async criar(dados: any) {
     const agora = new Date();
     const dataAtual = agora.toLocaleDateString('pt-BR');
@@ -100,10 +102,14 @@ export class OrdemServicoService {
 
     if (osAbertaExistente) {
       const setorDestino = setorInicial.setor || 'Agricultura de Precisão';
-      const oficinaAtiva = (osAbertaExistente.setorOs as any[]).find((s: any) => s.status !== 'concluido');
       
-      if (oficinaAtiva && oficinaAtiva.setor === setorDestino) {
-        throw new Error(`O setor ${setorDestino} já está em atendimento ativo para este trator.`);
+      // Evita duplicar exatamente o mesmo setor em aberto ao mesmo tempo
+      const oficinaAtiva = (osAbertaExistente.setorOs as any[]).find(
+        (s: any) => s.status !== 'concluido' && s.setor === setorDestino
+      );
+      
+      if (oficinaAtiva) {
+        throw new Error(`O setor ${setorDestino} já está em atendimento ativo nesta OS para este trator.`);
       }
 
       const novaOficina: SetorOs = {
@@ -117,12 +123,16 @@ export class OrdemServicoService {
         solucaoTecnico: ''
       };
 
+      // Apenas adiciona (push) o novo setor dentro do array da OS que já existe
       return await prisma.ordemServico.update({ 
         where: { idCustomizado: osAbertaExistente.idCustomizado }, 
-        data: { setorOs: [novaOficina] } 
+        data: { 
+          setorOs: [...(osAbertaExistente.setorOs as any[]), novaOficina] 
+        }
       });
     }
 
+    // Caso não exista nenhuma OS aberta para este trator, cria uma completamente do zero
     const ano = agora.getFullYear();
     const total = await prisma.ordemServico.count({ where: { idCustomizado: { startsWith: `OS-${ano}-` } } });
     
@@ -170,37 +180,28 @@ export class OrdemServicoService {
     return await prisma.ordemServico.update({ where: { idCustomizado }, data: { setorOs: setorOsAtualizado } });
   }
 
-  // 🔄 TRANSFERÊNCIA PURA (Remove a antiga e adiciona a nova direto no array)
+  // 2️⃣ TRANSFERÊNCIA PURA: APENAS ALTERA O SETOR INTERNAMENTE SEM CRIAR OUTRO OU CONCLUIR
   async injetarNovaOficina(idCustomizado: string, setorId: string, setorDestino: string) {
     const os = await prisma.ordemServico.findUnique({ where: { idCustomizado } });
     if (!os) throw new Error("OS não encontrada.");
-    
-    const agora = new Date();
-    const dataAtual = agora.toLocaleDateString('pt-BR');
-    const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-    // 1. Remove completamente o setor antigo do array para não deixar rasto nem histórico
-    const arraySemOficinaAntiga = (os.setorOs as any[]).filter(s => s.id !== setorId);
+    // Mapeia o array procurando o setor pretendido e altera apenas a propriedade 'setor'
+    const setorOsAtualizado = (os.setorOs as any[]).map(s => {
+      if (s.id === setorId) {
+        return { 
+          ...s, 
+          setor: setorDestino,
+          status: 'aguardando_manutencao', // Volta a ficar em espera na fila do novo setor
+          dataInicioManutencao: null,       // Reseta o cronómetro para o novo setor iniciar do zero
+          tempoManutencao: null
+        };
+      }
+      return s;
+    });
 
-    // 2. Procura a origem apenas para herdar o QRU/Descrição original
-    const oficinaOrigem = (os.setorOs as any[]).find(s => s.id === setorId);
-
-    // 3. Cria a nova oficina/setor destino do zero
-    const novaOficina: SetorOs = {
-      id: uuidv4(), 
-      setor: setorDestino,
-      status: 'aguardando_manutencao',
-      qruDescricao: oficinaOrigem?.qruDescricao || "Transferido sem descrição",
-      criadoPor: oficinaOrigem?.criadoPor || 'Sistema de Fluxo',
-      dataCriacao: dataAtual,
-      horaCriacao: horaAtual,
-      solucaoTecnico: ''
-    };
-
-    // 4. Substitui e salva no banco de dados
     return await prisma.ordemServico.update({ 
       where: { idCustomizado }, 
-      data: { setorOs: [...arraySemOficinaAntiga, novaOficina] } 
+      data: { setorOs: setorOsAtualizado } 
     });
   }
 
