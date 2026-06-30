@@ -7,9 +7,10 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3333;
+const allowedOrigins = [process.env.URL_PROD, process.env.URL_DES].filter(Boolean);
 
 app.use(cors({
-  origin: process.env.URL_FRONT_END,
+  origin: allowedOrigins,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
