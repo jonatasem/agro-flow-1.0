@@ -7,7 +7,11 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3333;
-const allowedOrigins = [process.env.URL_PROD, process.env.URL_DES].filter(Boolean);
+
+const allowedOrigins = [
+  process.env.URL_PROD, 
+  process.env.URL_DES
+].filter(Boolean) as string[];
 
 app.use(cors({
   origin: allowedOrigins,
